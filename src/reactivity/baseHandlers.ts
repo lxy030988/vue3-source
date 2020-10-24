@@ -6,6 +6,7 @@ import {
   hasOwn,
   needChanged,
 } from "./../utils/index";
+import { track, trigger } from "./effect";
 import { reactive } from "./reactive";
 
 function createGetter() {
@@ -18,7 +19,8 @@ function createGetter() {
     }
 
     //依赖收集
-    console.log("数据做了获取操作");
+    console.log("数据做了获取操作", key);
+    track(target, key);
 
     if (isObject(res)) {
       //取值是对象 再进行代理，懒递归
@@ -43,11 +45,13 @@ function createSetter() {
     if (hasKey) {
       if (needChanged(value, oldValue)) {
         console.log("修改属性");
+        trigger("edit", target, key, value, oldValue);
       } else {
         console.log("属性存在且无需修改");
       }
     } else {
       console.log("新增属性");
+      trigger("add", target, key, value);
     }
     return res;
   };
