@@ -4,3 +4,4 @@ export const isArray = Array.isArray;
 export const isInt = (v: any) => "" + parseInt(v, 10) === v;
 export const hasOwn = (v, k) => Object.prototype.hasOwnProperty.call(v, k);
 export const needChanged = (v: any, old: any) => v !== old;
+export const isString = (v: any) => typeof v === "string";

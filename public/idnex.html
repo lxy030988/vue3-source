@@ -1,45 +1,73 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
-</head>
+  <body>
+    <div id="app"></div>
 
-<body>
-  <div id="app"></div>
+    <!-- <script src="/node_modules/@vue/reactivity/dist/reactivity.global.js"></script> -->
+    <script src="../dist/vue.js"></script>
 
-  <!-- <script src="/node_modules/@vue/reactivity/dist/reactivity.global.js"></script> -->
-  <script src="../dist/vue.js"></script>
+    <!-- <script>
+      const { reactive, effect, ref, computed, toRefs } = Vue.Reactivity;
+      // console.log(reactive, effect, ref, computed, toRefs)
+      // const state = reactive({
+      //   name: 'lxy',
+      //   age: 25,
+      //   address: '射阳',
+      //   a: { a: 1 }
+      // })
+      // console.log(state.a)
+      const state = reactive([1, 2, 3]);
+      effect(() => {
+        console.log("effect");
+        // app.innerHTML = state.name + state.age + state.address
+        // app.innerHTML = state[2]
+        //effect中使用了 length 改length是可以的；如果没用length，修改length，就不会触发
+        app.innerHTML = state;
+      });
+      //当effect函数中依赖的数据发生变化 effect会重新执行
+      setTimeout(() => {
+        // state.address = '南京'
+        // state.ccc = '南京'
+        // state.ccc = '南京'
+        // state.length = 1
+        state[10] = 1;
+      }, 1000);
+    </script> -->
 
-  <script>
-    const { reactive, effect, ref, computed, toRefs } = VueReactivity
-    // console.log(reactive, effect, ref, computed, toRefs)
-    // const state = reactive({
-    //   name: 'lxy',
-    //   age: 25,
-    //   address: '射阳',
-    //   a: { a: 1 }
-    // })
-    // console.log(state.a)
-    const state = reactive([1, 2, 3])
-    effect(() => {
-      console.log('effect')
-      // app.innerHTML = state.name + state.age + state.address
-      // app.innerHTML = state[2]
-      //effect中使用了 length 改length是可以的；如果没用length，修改length，就不会触发
-      app.innerHTML = state
-    })
-    //当effect函数中依赖的数据发生变化 effect会重新执行
-    setTimeout(() => {
-      // state.address = '南京'
-      // state.ccc = '南京'
-      // state.ccc = '南京'
-      // state.length = 1
-      state[10] = 1
-    }, 1000)
-  </script>
-</body>
-
+    <script>
+      const { render } = Vue.Compiler;
+      const state = {
+        count: 0,
+      };
+      const vnode = {
+        tag: "div",
+        props: {
+          color: "yellow",
+        },
+        children: [
+          {
+            tag: "p",
+            props: {
+              color: "blue",
+            },
+            children: `vue3 计数器 ${state.count}`,
+          },
+          {
+            tag: "button",
+            props: {
+              onClick: () => alert(state.count),
+            },
+            children: `点击`,
+          },
+        ],
+      };
+      render(vnode, app);
+    </script>
+  </body>
 </html>
