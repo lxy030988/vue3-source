@@ -15,7 +15,7 @@
 
 
 ```shell
-npx ts --init
+npx ts --init 
 ```
 
 
