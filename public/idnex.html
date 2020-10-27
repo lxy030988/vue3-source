@@ -7,6 +7,14 @@
   </head>
 
   <body>
+    <!-- 
+      Vue2与Vue3的对比
+      ·对TypeScript支持不友好（所有属性都放在了this对象上，难以推倒组件的数据类型)
+      大量的API挂载在Vue对象的原型上，难以实现TreeShaking。
+      架构层面对跨平台dom渲染开发支持不友好
+      . CompositionAPI。受ReactHook启发
+      ·对虚拟DOM进行了重写、对模板的编译进行了优化操作...
+     -->
     <div id="app"></div>
 
     <!-- <script src="/node_modules/@vue/reactivity/dist/reactivity.global.js"></script> -->
@@ -41,20 +49,48 @@
     </script> -->
 
     <script>
-      const { render } = Vue.Compiler;
+      const { render } = Vue.RuntimeCore;
       const state = {
         count: 0,
+      };
+      const component = {
+        setup(props, context) {
+          //如果没有返回函数 则会用templete编译成render函数 再挂载到setup的返回结果中
+          return () => {
+            //render函数
+            return {
+              tag: "div",
+              props: {
+                style: { color: "pink" },
+              },
+              children: [
+                {
+                  tag: "p",
+                  props: null,
+                  children: `component ${state.count}`,
+                },
+                {
+                  tag: "button",
+                  props: {
+                    onClick: () => state.count++,
+                  },
+                  children: "点击count+1",
+                },
+              ],
+            };
+          };
+        },
       };
       const vnode = {
         tag: "div",
         props: {
-          color: "yellow",
+          style: { background: "yellow" },
         },
         children: [
           {
             tag: "p",
             props: {
-              color: "blue",
+              style: { color: "blue" },
             },
             children: `vue3 计数器 ${state.count}`,
           },
@@ -64,6 +100,11 @@
               onClick: () => alert(state.count),
             },
             children: `点击`,
+          },
+          {
+            tag: component,
+            props: null, //组件的属性
+            children: "", //插槽
           },
         ],
       };

@@ -1,2 +1,2 @@
 export * as Reactivity from "./reactivity/index";
-export * as Compiler from "./compiler/index";
+export * as RuntimeCore from "./runtime-core/index";

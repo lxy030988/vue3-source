@@ -20,13 +20,36 @@ function patch(n1, n2, container) {
     mountElement(n2, container);
   } else if (isObject(n2.tag)) {
     //组件
+    mountComponent(n2, container);
   }
+}
+
+function mountComponent(vnode, container) {
+  //根据组件创建一个实例
+  const instance = {
+    vnode,
+    render: null, //setup的返回值
+    subTree: null, //render方法的返回值
+  };
+  // console.log(vnode.tag);
+  const Comp = vnode.tag;
+  instance.render = Comp.setup(vnode.props, instance);
+  //如果返回是对象 templete编译成render函数 再挂载到对象上
+  //这边可以做vue2兼容 拿到options API 和 setup的返回值 做合并
+  instance.subTree = instance.render && instance.render();
+  patch(null, instance.subTree, container);
 }
 
 function mountElement(vnode, container) {
   const { tag, children, props } = vnode;
   //讲虚拟节点和真实节点做映射关系
   const el = (vnode.el = nodeOps.createElement(tag));
+  if (props) {
+    Object.entries(props).forEach((v) => {
+      nodeOps.hostPatchProps(el, v[0], v[1]);
+    });
+  }
+
   if (isArray(children)) {
     mountChildren(children, el);
   } else {
