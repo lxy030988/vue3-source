@@ -2,11 +2,11 @@
 
 ## 1、搭建 rollup 开发环境
 
--rollup  打包工具
-rollup-plugin-typescript2  解析ts插件
-@rollup/plugin-node-resolve  解析第三方模块
-@rollup/plugin-replace  替换插件
-rollup-plugin-serve  启动本地服务插件
+- rollup  打包工具
+- rollup-plugin-typescript2  解析ts插件
+- @rollup/plugin-node-resolve  解析第三方模块
+- @rollup/plugin-replace  替换插件
+- rollup-plugin-serve  启动本地服务插件
 
 
 
