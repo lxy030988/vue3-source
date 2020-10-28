@@ -128,10 +128,26 @@
       const oldVnode = {
         tag: "div",
         props: {
-          id: "aaa",
-          style: { color: "blue" },
+          style: { color: "red" },
         },
-        children: "lxy",
+        children: [
+          {
+            tag: "p",
+            props: {
+              style: { background: "red" },
+              key: "1",
+            },
+            children: "1",
+          },
+          {
+            tag: "p",
+            props: {
+              style: { background: "yellow" },
+              key: "2",
+            },
+            children: "2",
+          },
+        ],
       };
       render(oldVnode, app);
 
@@ -139,9 +155,43 @@
         const newVnode = {
           tag: "div",
           props: {
-            style: { color: "red" },
+            id: "aaa",
+            style: { color: "blue" },
           },
-          children: "lxy",
+          children: [
+            {
+              tag: "p",
+              props: {
+                style: { background: "red" },
+                key: "1",
+              },
+              children: "1",
+            },
+            {
+              tag: "p",
+              props: {
+                style: { background: "yellow" },
+                key: "2",
+              },
+              children: "2",
+            },
+            {
+              tag: "p",
+              props: {
+                style: { background: "pink" },
+                key: "3",
+              },
+              children: "3",
+            },
+            {
+              tag: "p",
+              props: {
+                style: { background: "none" },
+                key: "4",
+              },
+              children: "4",
+            },
+          ],
         };
         render(newVnode, app);
       }, 1000);

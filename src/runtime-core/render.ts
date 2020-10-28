@@ -16,7 +16,7 @@ export function render(vnode, container) {
  * @param container 容器
  */
 function patch(n1, n2, container) {
-  console.log("oldvnode", n1);
+  // console.log("oldvnode", n1);
   //如果是组件 tag可能是一个对象
   if (isString(n2.tag)) {
     //标签
@@ -60,6 +60,32 @@ function patchElement(n1, n2, container) {
   //看n1 n2是否一样 只考虑有key的情况
   const el = (n2.el = n1.el); //节点一样就复用
   patchProps(el, n1.props, n2.props);
+  //比对元素的孩子
+  patchChildren(n1, n2, container);
+}
+
+function patchChildren(n1, n2, container) {
+  const c1 = n1.children;
+  const c2 = n2.children;
+  if (isString(c2)) {
+    if (c1 != c2) {
+      //直接用文本替换
+      nodeOps.hostSetElementText(container, c2);
+    }
+  } else {
+    //c2 是数组
+    if (isString(c1)) {
+      //删除c1中原有的内容 再插入新的内容
+      nodeOps.hostSetElementText(container, "");
+      mountChildren(c2, container);
+    } else {
+      patchKeyedChildren(c1, c2, container);
+    }
+  }
+}
+
+function patchKeyedChildren(c1, c2, container) {
+  //最长递增子序列  数组push+二分查找
 }
 
 function patchProps(el, oldProps, newProps: Object) {
