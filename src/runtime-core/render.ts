@@ -1,3 +1,4 @@
+import { effect } from "../reactivity/index";
 import { nodeOps } from "../runtime-dom/index";
 import { isArray, isObject, isString } from "../utils/index";
 
@@ -34,10 +35,14 @@ function mountComponent(vnode, container) {
   // console.log(vnode.tag);
   const Comp = vnode.tag;
   instance.render = Comp.setup(vnode.props, instance);
-  //如果返回是对象 templete编译成render函数 再挂载到对象上
-  //这边可以做vue2兼容 拿到options API 和 setup的返回值 做合并
-  instance.subTree = instance.render && instance.render();
-  patch(null, instance.subTree, container);
+
+  //局部更新组件  每个组件一个effect
+  effect(() => {
+    //如果返回是对象 templete编译成render函数 再挂载到对象上
+    //这边可以做vue2兼容 拿到options API 和 setup的返回值 做合并
+    instance.subTree = instance.render && instance.render();
+    patch(null, instance.subTree, container);
+  });
 }
 
 function mountElement(vnode, container) {

@@ -50,9 +50,11 @@
 
     <script>
       const { render } = Vue.RuntimeCore;
-      const state = {
+      const { reactive, effect, ref, computed, toRefs } = Vue.Reactivity;
+      const state = reactive({
         count: 0,
-      };
+        name: "aaa",
+      });
       const component = {
         setup(props, context) {
           //如果没有返回函数 则会用templete编译成render函数 再挂载到setup的返回结果中
@@ -67,7 +69,7 @@
                 {
                   tag: "p",
                   props: null,
-                  children: `component ${state.count}`,
+                  children: `component ${state.count} ${state.name}`,
                 },
                 {
                   tag: "button",
@@ -76,39 +78,49 @@
                   },
                   children: "点击count+1",
                 },
+                {
+                  tag: "button",
+                  props: {
+                    onClick: () => (state.name = "lxy"),
+                  },
+                  children: "点击name改变",
+                },
               ],
             };
           };
         },
       };
-      const vnode = {
-        tag: "div",
-        props: {
-          style: { background: "yellow" },
-        },
-        children: [
-          {
-            tag: "p",
-            props: {
-              style: { color: "blue" },
+
+      effect(() => {
+        const vnode = {
+          tag: "div",
+          props: {
+            style: { background: "yellow" },
+          },
+          children: [
+            {
+              tag: "p",
+              props: {
+                style: { color: "blue" },
+              },
+              children: `vue3 计数器 ${state.count} ${state.name}`,
             },
-            children: `vue3 计数器 ${state.count}`,
-          },
-          {
-            tag: "button",
-            props: {
-              onClick: () => alert(state.count),
+            {
+              tag: "button",
+              props: {
+                onClick: () => alert(state.count),
+              },
+              children: `点击`,
             },
-            children: `点击`,
-          },
-          {
-            tag: component,
-            props: null, //组件的属性
-            children: "", //插槽
-          },
-        ],
-      };
-      render(vnode, app);
+            {
+              tag: component,
+              props: null, //组件的属性
+              children: "", //插槽
+            },
+          ],
+        };
+        render(vnode, app);
+      });
     </script>
   </body>
 </html>
