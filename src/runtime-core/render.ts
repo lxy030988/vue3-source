@@ -15,12 +15,12 @@ export function render(vnode, container) {
  * @param n2 新的虚拟节点
  * @param container 容器
  */
-function patch(n1, n2, container) {
+function patch(n1, n2, container, anchor?) {
   // console.log("oldvnode", n1);
   //如果是组件 tag可能是一个对象
   if (isString(n2.tag)) {
     //标签
-    processElement(n1, n2, container);
+    processElement(n1, n2, container, anchor);
   } else if (isObject(n2.tag)) {
     //组件
     mountComponent(n2, container);
@@ -47,21 +47,21 @@ function mountComponent(vnode, container) {
   });
 }
 
-function processElement(n1, n2, container) {
+function processElement(n1, n2, container, anchor) {
   if (n1) {
-    patchElement(n1, n2, container);
+    patchElement(n1, n2);
   } else {
     //初次挂载
-    mountElement(n2, container);
+    mountElement(n2, container, anchor);
   }
 }
 
-function patchElement(n1, n2, container) {
+function patchElement(n1, n2) {
   //看n1 n2是否一样 只考虑有key的情况
   const el = (n2.el = n1.el); //节点一样就复用
   patchProps(el, n1.props, n2.props);
   //比对元素的孩子
-  patchChildren(n1, n2, container);
+  patchChildren(n1, n2, el);
 }
 
 function patchChildren(n1, n2, container) {
@@ -84,8 +84,53 @@ function patchChildren(n1, n2, container) {
   }
 }
 
-function patchKeyedChildren(c1, c2, container) {
-  //最长递增子序列  数组push+二分查找
+function patchKeyedChildren(c1: Array<any>, c2: Array<any>, container) {
+  //内部diff优化 头头比较 尾尾比较 头尾比较 尾头比较 ... 省略
+  //
+  const keyedToNewIndexMap = new Map();
+  // 1.根据新节点 生成 key:index 映射表
+  c2.forEach((child, i) => {
+    keyedToNewIndexMap.set(child.props.key, i);
+  });
+  // console.log("keyedToNewIndexMap", keyedToNewIndexMap);
+  // 2.去老的里面找 有一样的就复用
+  // 3.新的比老的多 添加   老的比新的多 删除
+  const newIndexToOldIndexMap = new Array(c2.length).fill(-1); //新老节点映射表
+  c1.forEach((child, i) => {
+    const newIndex = keyedToNewIndexMap.get(child.props.key);
+    if (newIndex == undefined) {
+      //老的有 新的没有 删除老节点
+      nodeOps.remove(child.el);
+    } else {
+      //复用 并且比对属性
+      newIndexToOldIndexMap[newIndex] = i + 1;
+      patch(child, c2[newIndex], container);
+    }
+  });
+  // 4.两个key一样 比较属性  移动
+  //获取不需要移动的最长个数   //最长递增子序列  数组push+二分查找
+  const sequence = getSequence(newIndexToOldIndexMap);
+  // console.log(newIndexToOldIndexMap, "sequence", sequence);
+  let j = sequence.length - 1;
+  // 移动 从后往前插入
+  for (let i = c2.length - 1; i >= 0; i--) {
+    const anchor = i + 1 < c2.length ? c2[i + 1].el : null;
+    //有可能新的比老的多
+    if (newIndexToOldIndexMap[i] === -1) {
+      //这是一个新元素 需要插入列表中  插入到某个元素的前面
+      patch(null, c2[i], container, anchor);
+    } else {
+      //不需要移动的 直接跳过
+      // console.log(i, sequence[j], sequence);
+      if (i === sequence[j]) {
+        j--;
+      } else {
+        // console.log("移动", i);
+        //先将最后一项插入到页面中
+        nodeOps.insert(c2[i].el, container, anchor);
+      }
+    }
+  }
 }
 
 function patchProps(el, oldProps, newProps: Object) {
@@ -108,7 +153,7 @@ function patchProps(el, oldProps, newProps: Object) {
   }
 }
 
-function mountElement(vnode, container) {
+function mountElement(vnode, container, anchor) {
   const { tag, children, props } = vnode;
   //讲虚拟节点和真实节点做映射关系
   const el = (vnode.el = nodeOps.createElement(tag));
@@ -123,11 +168,54 @@ function mountElement(vnode, container) {
   } else {
     nodeOps.hostSetElementText(el, children);
   }
-  nodeOps.insert(el, container);
+  nodeOps.insert(el, container, anchor);
 }
 
 function mountChildren(children: Array<any>, el) {
   children.forEach((child) => {
     patch(null, child, el); //递归挂载孩子节点
   });
+}
+
+// https://en.wikipedia.org/wiki/Longest_increasing_subsequence
+function getSequence(arr: number[]): number[] {
+  //最长递增子序列的索引
+  const p = arr.slice();
+  const result = [0];
+  let i, j, u, v, c;
+  const len = arr.length;
+  for (i = 0; i < len; i++) {
+    const arrI = arr[i];
+    if (arrI !== 0) {
+      j = result[result.length - 1];
+      if (arr[j] < arrI) {
+        p[i] = j;
+        result.push(i);
+        continue;
+      }
+      u = 0;
+      v = result.length - 1;
+      while (u < v) {
+        c = ((u + v) / 2) | 0;
+        if (arr[result[c]] < arrI) {
+          u = c + 1;
+        } else {
+          v = c;
+        }
+      }
+      if (arrI < arr[result[u]]) {
+        if (u > 0) {
+          p[i] = result[u - 1];
+        }
+        result[u] = i;
+      }
+    }
+  }
+  u = result.length;
+  v = result[u - 1];
+  while (u-- > 0) {
+    result[u] = v;
+    v = p[v];
+  }
+  return result;
 }

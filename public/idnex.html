@@ -128,7 +128,7 @@
       const oldVnode = {
         tag: "div",
         props: {
-          style: { color: "red" },
+          style: { color: "skyblue" },
         },
         children: [
           {
@@ -138,6 +138,22 @@
               key: "1",
             },
             children: "1",
+          },
+          {
+            tag: "p",
+            props: {
+              style: { background: "pink" },
+              key: "3",
+            },
+            children: "3",
+          },
+          {
+            tag: "p",
+            props: {
+              style: { background: "none" },
+              key: "4",
+            },
+            children: "4",
           },
           {
             tag: "p",
@@ -162,7 +178,7 @@
             {
               tag: "p",
               props: {
-                style: { background: "red" },
+                style: { background: "yellow" },
                 key: "1",
               },
               children: "1",
@@ -190,6 +206,14 @@
                 key: "4",
               },
               children: "4",
+            },
+            {
+              tag: "p",
+              props: {
+                style: { background: "none" },
+                key: "5",
+              },
+              children: "5",
             },
           ],
         };
