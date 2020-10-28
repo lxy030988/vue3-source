@@ -48,7 +48,7 @@
       }, 1000);
     </script> -->
 
-    <script>
+    <!-- <script>
       const { render } = Vue.RuntimeCore;
       const { reactive, effect, ref, computed, toRefs } = Vue.Reactivity;
       const state = reactive({
@@ -121,6 +121,30 @@
         };
         render(vnode, app);
       });
+    </script> -->
+    <script>
+      //diff
+      const { render } = Vue.RuntimeCore;
+      const oldVnode = {
+        tag: "div",
+        props: {
+          id: "aaa",
+          style: { color: "blue" },
+        },
+        children: "lxy",
+      };
+      render(oldVnode, app);
+
+      setTimeout(() => {
+        const newVnode = {
+          tag: "div",
+          props: {
+            style: { color: "red" },
+          },
+          children: "lxy",
+        };
+        render(newVnode, app);
+      }, 1000);
     </script>
   </body>
 </html>

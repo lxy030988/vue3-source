@@ -18,19 +18,31 @@ export const nodeOps = {
     el.textContent = text;
   },
   //属性操作
-  hostPatchProps(el: HTMLElement, key: string, value) {
+  hostPatchProps(el: HTMLElement, key: string, oldProp, newProp) {
     if (/^on[^a-z]/.test(key)) {
-      //事件
+      //更新事件
       const eventName = key.slice(2).toLowerCase();
-      el.addEventListener(eventName, value);
+      oldProp && el.removeEventListener(eventName, oldProp);
+      newProp && el.addEventListener(eventName, newProp);
     } else {
-      //样式
-      if (key == "style") {
-        Object.entries(value).forEach((v) => {
-          el.style[v[0]] = v[1];
-        });
+      if (newProp) {
+        //样式
+        if (key == "style") {
+          Object.entries(newProp).forEach((v) => {
+            el.style[v[0]] = v[1];
+          });
+          oldProp &&
+            Object.keys(oldProp).forEach((k) => {
+              if (!newProp.hasOwnProperty(k)) {
+                el.style[k] = null;
+              }
+            });
+        } else {
+          el.setAttribute(key, newProp);
+        }
       } else {
-        el.setAttribute(key, value);
+        //删除属性
+        el.removeAttribute(key);
       }
     }
   },
