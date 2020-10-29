@@ -180,8 +180,8 @@ function mountChildren(children: Array<any>, el) {
 // https://en.wikipedia.org/wiki/Longest_increasing_subsequence
 function getSequence(arr: number[]): number[] {
   //最长递增子序列的索引
-  const p = arr.slice();
-  const result = [0];
+  const p = arr.slice(); //拷贝一个新数组
+  const result = [0]; //存的arr的索引
   let i, j, u, v, c;
   const len = arr.length;
   for (i = 0; i < len; i++) {
@@ -189,33 +189,36 @@ function getSequence(arr: number[]): number[] {
     if (arrI !== 0) {
       j = result[result.length - 1];
       if (arr[j] < arrI) {
-        p[i] = j;
+        p[i] = j; //将当前最后一项 放到P对应的索引上
         result.push(i);
         continue;
       }
-      u = 0;
-      v = result.length - 1;
+      //二分查找
+      u = 0; //头
+      v = result.length - 1; //尾
       while (u < v) {
-        c = ((u + v) / 2) | 0;
+        c = ((u + v) / 2) | 0; // | 0 取整
         if (arr[result[c]] < arrI) {
           u = c + 1;
         } else {
           v = c;
         }
       }
+      //当前这一项 比arr result中的二分查找结果的那个值小
       if (arrI < arr[result[u]]) {
         if (u > 0) {
           p[i] = result[u - 1];
         }
-        result[u] = i;
+        result[u] = i; //这里有可能后面的把前面的换掉了，导致结果有问题
       }
     }
   }
+
   u = result.length;
   v = result[u - 1];
   while (u-- > 0) {
     result[u] = v;
     v = p[v];
   }
-  return result;
+  return result; //标记
 }
