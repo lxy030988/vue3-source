@@ -1,7 +1,7 @@
 import { effect } from "../reactivity/index";
 import { nodeOps } from "../runtime-dom/nodeOps";
 import { patchProp } from "../runtime-dom/patchProp";
-import { isArray, isObject, isString } from "../utils/index";
+import { isArray, isObject, isString, ShapeFlags } from "../utils/index";
 import { createAppAPI } from "./apiCreateApp"; //用户调用的createApp方法
 
 export function createRender(options) {
@@ -10,7 +10,20 @@ export function createRender(options) {
 }
 
 function baseCreateRenderer(options) {
-  const render = (vnode, container) => {};
+  const render = (vnode, container) => {
+    //讲虚拟节点变成真实节点 挂载到容器上
+    patch(null, vnode, container);
+  };
+
+  const patch = (n1, n2, container, anchor?) => {
+    const { shapeFlag } = n2;
+    if (shapeFlag & ShapeFlags.ELEMENT) {
+      //元素
+    } else if (shapeFlag & ShapeFlags.STATEFUL_COMPONENT) {
+      //组件
+    }
+  };
+
   return {
     createApp: createAppAPI(render),
   };
