@@ -1,1 +1,1 @@
-export { render } from "./render";
+export { render, createRender } from "./renderer";

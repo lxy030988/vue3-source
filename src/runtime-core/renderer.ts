@@ -1,6 +1,20 @@
 import { effect } from "../reactivity/index";
-import { nodeOps } from "../runtime-dom/index";
+import { nodeOps } from "../runtime-dom/nodeOps";
+import { patchProp } from "../runtime-dom/patchProp";
 import { isArray, isObject, isString } from "../utils/index";
+import { createAppAPI } from "./apiCreateApp"; //用户调用的createApp方法
+
+export function createRender(options) {
+  //options是平台传过来的方法，不同的平台可以实现不同的操作逻辑
+  return baseCreateRenderer(options);
+}
+
+function baseCreateRenderer(options) {
+  const render = (vnode, container) => {};
+  return {
+    createApp: createAppAPI(render),
+  };
+}
 
 export function render(vnode, container) {
   //vue2 patch
@@ -70,13 +84,13 @@ function patchChildren(n1, n2, container) {
   if (isString(c2)) {
     if (c1 != c2) {
       //直接用文本替换
-      nodeOps.hostSetElementText(container, c2);
+      nodeOps.setElementText(container, c2);
     }
   } else {
     //c2 是数组
     if (isString(c1)) {
       //删除c1中原有的内容 再插入新的内容
-      nodeOps.hostSetElementText(container, "");
+      nodeOps.setElementText(container, "");
       mountChildren(c2, container);
     } else {
       patchKeyedChildren(c1, c2, container);
@@ -141,13 +155,13 @@ function patchProps(el, oldProps, newProps: Object) {
       const oldProp = oldProps[key];
       const newProp = newProps[key];
       if (newProp !== oldProp) {
-        nodeOps.hostPatchProps(el, key, oldProp, newProp);
+        patchProp(el, key, oldProp, newProp);
       }
     });
     // 2.老的里有 新的里没有 需要删掉
     Object.keys(oldProps).forEach((key) => {
       if (!newProps.hasOwnProperty(key)) {
-        nodeOps.hostPatchProps(el, key, oldProps[key], null);
+        patchProp(el, key, oldProps[key], null);
       }
     });
   }
@@ -159,14 +173,14 @@ function mountElement(vnode, container, anchor) {
   const el = (vnode.el = nodeOps.createElement(tag));
   if (props) {
     Object.entries(props).forEach((v) => {
-      nodeOps.hostPatchProps(el, v[0], null, v[1]);
+      patchProp(el, v[0], null, v[1]);
     });
   }
 
   if (isArray(children)) {
     mountChildren(children, el);
   } else {
-    nodeOps.hostSetElementText(el, children);
+    nodeOps.setElementText(el, children);
   }
   nodeOps.insert(el, container, anchor);
 }

@@ -18,10 +18,11 @@
     <div id="app"></div>
 
     <!-- <script src="/node_modules/@vue/reactivity/dist/reactivity.global.js"></script> -->
+    <!-- <script src="/node_modules/vue/dist/vue.global.js"></script> -->
     <script src="../dist/vue.js"></script>
 
     <!-- <script>
-      const { reactive, effect, ref, computed, toRefs } = Vue.Reactivity;
+      const { reactive, effect, ref, computed, toRefs } = Vue;
       // console.log(reactive, effect, ref, computed, toRefs)
       // const state = reactive({
       //   name: 'lxy',
@@ -49,8 +50,8 @@
     </script> -->
 
     <!-- <script>
-      const { render } = Vue.RuntimeCore;
-      const { reactive, effect, ref, computed, toRefs } = Vue.Reactivity;
+      const { render } = Vue;
+      const { reactive, effect, ref, computed, toRefs } = Vue;
       const state = reactive({
         count: 0,
         name: "aaa",
@@ -122,9 +123,10 @@
         render(vnode, app);
       });
     </script> -->
-    <script>
+
+    <!-- <script>
       //diff
-      const { render } = Vue.RuntimeCore;
+      const { render } = Vue;
       const oldVnode = {
         tag: "div",
         props: {
@@ -219,6 +221,28 @@
         };
         render(newVnode, app);
       }, 1000);
+    </script> -->
+
+    <script>
+      const { reactive, createApp, h } = Vue;
+      const App = {
+        setup() {
+          const state = reactive({
+            name: "lxy",
+            age: 25,
+          });
+          return () => {
+            //render 函数
+            return h(
+              "div",
+              { style: { color: "red" } },
+              state.name + ":" + state.age
+            );
+          };
+        },
+      };
+      //组件是怎么渲染是  初始化流程
+      createApp(App).mount("#app");
     </script>
   </body>
 </html>

@@ -1,2 +1,3 @@
-export * as Reactivity from "./reactivity/index";
-export * as RuntimeCore from "./runtime-core/index";
+export * from "./reactivity/index";
+export * from "./runtime-core/index";
+export * from "./runtime-dom/index";
