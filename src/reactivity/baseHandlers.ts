@@ -5,7 +5,7 @@ import {
   isInt,
   hasOwn,
   needChanged,
-} from "./../utils/index";
+} from "../shared/index";
 import { track, trigger } from "./effect";
 import { reactive } from "./reactive";
 

@@ -1,4 +1,4 @@
-import { isArray, isInt } from "./../utils/index";
+import { isArray, isInt } from "../shared/index";
 //effect => vue2 watcher
 export function effect(fn: Function, options: any = {}) {
   const effect = createReactiveEffect(fn, options);

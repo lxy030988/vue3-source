@@ -1,5 +1,5 @@
 import { mutableHandelers } from "./baseHandlers";
-import { isObject } from "./../utils/index";
+import { isObject } from "../shared/index";
 
 export function reactive(target: object) {
   return createReactiveObject(target, mutableHandelers); //读取当前文件的依赖收集，当数据变化的时候，要从新执行effect

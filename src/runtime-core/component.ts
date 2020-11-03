@@ -1,4 +1,4 @@
-import { isFunction } from "../utils/index";
+import { isFunction } from "../shared/index";
 
 export function createComponentInstance(vnode) {
   const instance = {

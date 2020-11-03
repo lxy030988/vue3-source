@@ -1,4 +1,4 @@
-import { isArray, isObject, isString, ShapeFlags } from "../utils/index";
+import { isArray, isObject, isString, ShapeFlags } from "../shared/index";
 
 export function createVnode(type, props: any = {}, children = null) {
   // type 类型？

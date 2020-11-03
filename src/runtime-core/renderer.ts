@@ -1,7 +1,7 @@
 import { effect } from "../reactivity/index";
 import { nodeOps } from "../runtime-dom/nodeOps";
 import { patchProp } from "../runtime-dom/patchProp";
-import { isArray, isObject, isString, ShapeFlags } from "../utils/index";
+import { isArray, isObject, isString, ShapeFlags } from "../shared/index";
 import { createAppAPI } from "./apiCreateApp"; //用户调用的createApp方法
 import { createComponentInstance, setupComponent } from "./component";
 
