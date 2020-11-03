@@ -9,12 +9,12 @@ function ensureRenderer() {
 }
 
 export function createApp(rootComponent) {
-  console.log(rootComponent);
   // 1.根据组件 创建一个渲染器
   const app = ensureRenderer().createApp(rootComponent);
   const { mount } = app;
-  app.mount = function (container: HTMLElement) {
+  app.mount = function (container) {
     //1.挂载时需要先将容器清空 再进行挂载
+    container = document.querySelector(container);
     container.innerHTML = "";
     mount(container);
   };

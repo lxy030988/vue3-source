@@ -231,6 +231,9 @@
             name: "lxy",
             age: 25,
           });
+          setTimeout(() => {
+            state.name = "aaa";
+          }, 1000);
           return () => {
             //render 函数
             return h(

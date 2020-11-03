@@ -3,6 +3,7 @@ import { nodeOps } from "../runtime-dom/nodeOps";
 import { patchProp } from "../runtime-dom/patchProp";
 import { isArray, isObject, isString, ShapeFlags } from "../utils/index";
 import { createAppAPI } from "./apiCreateApp"; //用户调用的createApp方法
+import { createComponentInstance, setupComponent } from "./component";
 
 export function createRender(options) {
   //options是平台传过来的方法，不同的平台可以实现不同的操作逻辑
@@ -10,25 +11,112 @@ export function createRender(options) {
 }
 
 function baseCreateRenderer(options) {
+  const {
+    insert: hostInsert,
+    remove: hostRemove,
+    createElement: hostCreateElement,
+    setElementText: hostSetElementText,
+    patchProp: hostPatchProp,
+  } = options;
+
   const render = (vnode, container) => {
-    //讲虚拟节点变成真实节点 挂载到容器上
-    patch(null, vnode, container);
+    //将虚拟节点变成真实节点 挂载到容器上
+    // patch(null, vnode, container);
+    patch(container._vnode, vnode, container);
+    container._vnode = vnode; //上一次渲染的虚拟节点
   };
 
   const patch = (n1, n2, container, anchor?) => {
     const { shapeFlag } = n2;
     if (shapeFlag & ShapeFlags.ELEMENT) {
       //元素
+      processElement(n1, n2, container, anchor);
     } else if (shapeFlag & ShapeFlags.STATEFUL_COMPONENT) {
       //组件
+      processComponent(n1, n2, container);
     }
   };
+
+  const processElement = (n1, n2, container, anchor) => {
+    if (n1) {
+      patchElement(n1, n2);
+    } else {
+      //初次挂载
+      mountElement(n2, container, anchor);
+    }
+  };
+
+  const mountElement = (vnode, container, anchor) => {
+    console.log(vnode, container);
+    const { shapeFlag, children, props } = vnode;
+    //将虚拟节点和真实节点做映射关系
+    const el = (vnode.el = hostCreateElement(vnode.type));
+    //创建儿子节点
+    if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
+      hostSetElementText(el, children);
+    } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+      mountChildren(children, el);
+    }
+    if (props) {
+      Object.entries(props).forEach((v) => {
+        hostPatchProp(el, v[0], null, v[1]);
+      });
+    }
+    hostInsert(el, container, anchor);
+  };
+
+  const mountChildren = (children: Array<any>, el) => {
+    children.forEach((child) => {
+      patch(null, child, el); //递归挂载孩子节点
+    });
+  };
+
+  const patchElement = (n1, n2) => {};
+
+  const processComponent = (n1, n2, container) => {
+    if (n1) {
+      updateComponent(n1, n2, container);
+    } else {
+      //初次挂载
+      mountComponent(n2, container);
+    }
+  };
+
+  const mountComponent = (initialVnode, container) => {
+    //组件挂载逻辑 1.创建组件实例  2.找到组件是render方法  3.执行render
+    //组件实例要记录当前的组件状态
+    const instance = (initialVnode.component = createComponentInstance(
+      initialVnode
+    ));
+    setupComponent(instance); //找到组件的setup方法
+    //调用render方法 如果render方法中数据变了 会重新渲染
+    setupRenderEffect(instance, initialVnode, container); //给组件创建一个effect 用户渲染  == vue2 中的watcher
+  };
+
+  const setupRenderEffect = (instance, initialVnode, container) => {
+    effect(function componentEffect() {
+      if (!instance.isMounted) {
+        //渲染组件中的内容
+        instance.subTree = instance.render && instance.render(); //组件对应渲染的结果
+        patch(null, instance.subTree, container);
+        instance.isMounted = true;
+      } else {
+        //更新逻辑
+        const prev = instance.subTree;
+        const next = instance.render && instance.render();
+        console.log(prev, next);
+      }
+    });
+  };
+
+  const updateComponent = (n1, n2, container) => {};
 
   return {
     createApp: createAppAPI(render),
   };
 }
 
+// ---------------------------old-------------------------------------------
 export function render(vnode, container) {
   //vue2 patch
   //1.初次渲染 2.dom-diff
@@ -249,3 +337,4 @@ function getSequence(arr: number[]): number[] {
   }
   return result; //标记
 }
+// ---------------------------old-------------------------------------------
