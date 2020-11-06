@@ -62,7 +62,18 @@ export function trigger(type, target, key, value?, oldValue?) {
 
   const run = (effects) => {
     if (effects) {
-      effects.forEach((effect) => effect());
+      // effects.forEach((effect) => effect());
+      const baseEffects = [];
+      const computedRunners = [];
+      effects.forEach((effect) => {
+        if (effect.options.computed) {
+          computedRunners.push(effect);
+        } else {
+          baseEffects.push(effect);
+        }
+      });
+      baseEffects.forEach((effect) => effect());
+      computedRunners.forEach((computed) => computed());
     }
   };
 
