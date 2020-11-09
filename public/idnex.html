@@ -228,19 +228,26 @@
       const App = {
         setup() {
           const state = reactive({
+            flag: true,
             name: "lxy",
             age: 25,
           });
           setTimeout(() => {
-            state.name = "aaa";
+            // state.name = "aaa";
+            state.flag = !state.flag;
           }, 1000);
           return () => {
             //render 函数
-            return h(
-              "div",
-              { style: { color: "red" } },
-              state.name + ":" + state.age
-            );
+            return state.flag
+              ? h(
+                  "div",
+                  { style: { color: "red" } },
+                  state.name + ":" + state.age
+                )
+              : h("div", { style: { color: "blue" } }, [
+                  h("li", {}, "aaa"),
+                  h("li", {}, "aa1"),
+                ]);
           };
         },
       };

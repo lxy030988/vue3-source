@@ -26,8 +26,18 @@ function baseCreateRenderer(options) {
     container._vnode = vnode; //上一次渲染的虚拟节点
   };
 
+  const isSomeVnodeType = (n1, n2) => {
+    return n1.type === n2.type && n1.key === n2.key;
+  };
+
   const patch = (n1, n2, container, anchor?) => {
     const { shapeFlag } = n2;
+
+    if (n1 && !isSomeVnodeType(n1, n2)) {
+      hostRemove(n1.el);
+      n1 = null;
+    }
+
     if (shapeFlag & ShapeFlags.ELEMENT) {
       //元素
       processElement(n1, n2, container, anchor);
@@ -71,7 +81,62 @@ function baseCreateRenderer(options) {
     });
   };
 
-  const patchElement = (n1, n2) => {};
+  const patchElement = (n1, n2) => {
+    // console.log("patchElement", n1, n2);
+    //n1 n2 type 一样就复用
+    const el = (n2.el = n1.el);
+    patchProps(el, n1.props, n2.props);
+    //比对元素的孩子
+    patchChildren(n1, n2, el);
+  };
+
+  const patchProps = (el, oldProps, newProps: Object) => {
+    //比较属性
+    if (oldProps !== newProps) {
+      // 1.将新的属性 全部设置 以新的为准
+      Object.keys(newProps).forEach((key) => {
+        const oldProp = oldProps[key];
+        const newProp = newProps[key];
+        if (newProp !== oldProp) {
+          hostPatchProp(el, key, oldProp, newProp);
+        }
+      });
+      // 2.老的里有 新的里没有 需要删掉
+      Object.keys(oldProps).forEach((key) => {
+        if (!newProps.hasOwnProperty(key)) {
+          hostPatchProp(el, key, oldProps[key], null);
+        }
+      });
+    }
+  };
+
+  const patchChildren = (n1, n2, el) => {
+    const c1 = n1.children;
+    const c2 = n2.children;
+    const prevShapeFlag = n1.shapeFlag;
+    const shapeFlag = n2.shapeFlag;
+    if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
+      //新的是文本
+      if (c1 != c2) {
+        //直接用新的文本替换
+        hostSetElementText(el, c2);
+      }
+    } else {
+      //c2 新的是数组
+      if (prevShapeFlag & ShapeFlags.TEXT_CHILDREN) {
+        //老的是文本
+        //删除c1中原有的内容 再插入新的内容
+        hostSetElementText(el, "");
+        c2.forEach((c) => {
+          patch(null, c, el);
+        });
+        // mountChildren(c2, el);
+      } else {
+        //都是数组 核心diff
+        // patchKeyedChildren(c1, c2, el);
+      }
+    }
+  };
 
   const processComponent = (n1, n2, container) => {
     if (n1) {
@@ -104,7 +169,8 @@ function baseCreateRenderer(options) {
         //更新逻辑
         const prev = instance.subTree;
         const next = instance.render && instance.render();
-        console.log(prev, next);
+        // console.log(prev, next);
+        patch(prev, next, container);
       }
     });
   };
@@ -251,7 +317,7 @@ function patchKeyedChildren(c1: Array<any>, c2: Array<any>, container) {
 function patchProps(el, oldProps, newProps: Object) {
   //比较属性
   if (oldProps !== newProps) {
-    // 1.讲新的属性 全部设置 以新的为准
+    // 1.将新的属性 全部设置 以新的为准
     Object.keys(newProps).forEach((key) => {
       const oldProp = oldProps[key];
       const newProp = newProps[key];
