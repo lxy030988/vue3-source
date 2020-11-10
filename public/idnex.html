@@ -239,14 +239,17 @@
           return () => {
             //render 函数
             return state.flag
-              ? h(
-                  "div",
-                  { style: { color: "red" } },
-                  state.name + ":" + state.age
-                )
-              : h("div", { style: { color: "blue" } }, [
-                  h("li", {}, "aaa"),
-                  h("li", {}, "aa1"),
+              ? h("ul", { style: { color: "red" } }, [
+                  h("li", { key: "1", style: { background: "none" } }, "1"),
+                  h("li", { key: "2", style: { background: "yellow" } }, "2"),
+                  h("li", { key: "3", style: { background: "blue" } }, "3"),
+                ])
+              : h("ul", { style: { color: "blue" } }, [
+                  h("li", { key: "3", style: { background: "blue" } }, "3"),
+                  h("li", { key: "2", style: { background: "yellow" } }, "2"),
+                  h("li", { key: "4", style: { background: "green" } }, "4"),
+                  h("li", { key: "5", style: { background: "pink" } }, "5"),
+                  h("li", { key: "1", style: { background: "none" } }, "1"),
                 ]);
           };
         },

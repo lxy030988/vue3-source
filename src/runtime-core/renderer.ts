@@ -1,7 +1,5 @@
 import { effect } from "../reactivity/index";
-import { nodeOps } from "../runtime-dom/nodeOps";
-import { patchProp } from "../runtime-dom/patchProp";
-import { isArray, isObject, isString, ShapeFlags } from "../shared/index";
+import { ShapeFlags } from "../shared/index";
 import { createAppAPI } from "./apiCreateApp"; //用户调用的createApp方法
 import { createComponentInstance, setupComponent } from "./component";
 
@@ -21,19 +19,17 @@ function baseCreateRenderer(options) {
 
   const render = (vnode, container) => {
     //将虚拟节点变成真实节点 挂载到容器上
-    // patch(null, vnode, container);
-    patch(container._vnode, vnode, container);
-    container._vnode = vnode; //上一次渲染的虚拟节点
+    patch(null, vnode, container);
   };
 
-  const isSomeVnodeType = (n1, n2) => {
+  const isSameVnodeType = (n1, n2) => {
     return n1.type === n2.type && n1.key === n2.key;
   };
 
   const patch = (n1, n2, container, anchor?) => {
     const { shapeFlag } = n2;
 
-    if (n1 && !isSomeVnodeType(n1, n2)) {
+    if (n1 && !isSameVnodeType(n1, n2)) {
       hostRemove(n1.el);
       n1 = null;
     }
@@ -57,7 +53,7 @@ function baseCreateRenderer(options) {
   };
 
   const mountElement = (vnode, container, anchor) => {
-    console.log(vnode, container);
+    // console.log(vnode, container);
     const { shapeFlag, children, props } = vnode;
     //将虚拟节点和真实节点做映射关系
     const el = (vnode.el = hostCreateElement(vnode.type));
@@ -125,7 +121,8 @@ function baseCreateRenderer(options) {
       //新的是数组
       if (prevShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
         //都是数组 核心diff
-        // patchKeyedChildren(c1, c2, el);
+        // console.log("核心diff");
+        patchKeyedChildren(c1, c2, el);
       } else {
         //新的是数组 老的是文本
         if (prevShapeFlag & ShapeFlags.TEXT_CHILDREN) {
@@ -135,6 +132,126 @@ function baseCreateRenderer(options) {
         if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
           //把新元素挂载上去
           mountChildren(c2, el);
+        }
+      }
+    }
+  };
+
+  const patchKeyedChildren = (c1: Array<any>, c2: Array<any>, container) => {
+    //diff优化
+    let i = 0;
+    let e1 = c1.length - 1; // 老节点的最后一项index
+    let e2 = c2.length - 1; // 新节点的最后一项index
+
+    // (a b) c
+    // (a b) d e
+    //从头开始比
+    while (i <= e1 && i <= e2) {
+      const n1 = c1[i];
+      const n2 = c2[i];
+      if (isSameVnodeType(n1, n2)) {
+        patch(n1, n2, container);
+      } else {
+        break;
+      }
+      i++;
+    }
+
+    // a (b c)
+    // d e (b c)
+    //从尾开始比
+    while (i <= e1 && i <= e2) {
+      const n1 = c1[e1];
+      const n2 = c2[e2];
+      if (isSameVnodeType(n1, n2)) {
+        patch(n1, n2, container);
+      } else {
+        break;
+      }
+      e1--;
+      e2--;
+    }
+
+    //只考虑元素 新增和删除的情况
+    // abc=> abcd (i=3,e1=2,e2=3)   abc=> dabc (i=0,e1=-1,e2=0)
+    if (i > e1) {
+      //新增元素
+      if (i <= e2) {
+        //表示新增的部分
+        //根据e2取他的下一个元素 和 c2的长度比较
+        const nextPos = e2 + 1;
+        const anchor = nextPos < c2.length ? c2[nextPos].el : null;
+        //从前面添加元素 | 从后面添加元素
+        while (i <= e2) {
+          patch(null, c2[i], container, anchor);
+          i++;
+        }
+      }
+    }
+    // (a b) c=>(a b)   i = 2, e1 = 2, e2 = 1
+    // a (b c)=>(b c)   i = 0, e1 = 0, e2 = -1
+    else if (i > e2) {
+      //删除元素
+      while (i <= e1) {
+        hostRemove(c1[i].el);
+        i++;
+      }
+    } else {
+      //无规律的 真正的diff
+      // [i ... e1 + 1]: a b [c d e] f g
+      // [i ... e2 + 1]: a b [e d c h] f g
+      // i = 2, e1 = 4, e2 = 5
+      const s1 = i;
+      const s2 = i;
+      const keyedToNewIndexMap = new Map();
+      // 根据新节点 生成 key:index 映射表
+      for (i = s2; i <= e2; i++) {
+        //循环新节点
+        const nextChild = c2[i];
+        keyedToNewIndexMap.set(nextChild.key, i);
+      }
+      // console.log("keyedToNewIndexMap", keyedToNewIndexMap);
+      const toBePatched = e2 - s2 + 1; //新节点diff部分的长度
+      //去老的里面找 有一样的就复用
+      //新的比老的多 添加   老的比新的多 删除
+      const newIndexToOldIndexMap = new Array(toBePatched).fill(0); //新老节点映射表
+      for (i = s1; i <= e1; i++) {
+        //循环老节点
+        const prevChild = c1[i];
+        const newIndex = keyedToNewIndexMap.get(prevChild.key);
+        if (newIndex == undefined) {
+          //老的有 新的没有 删除老节点
+          hostRemove(prevChild.el);
+        } else {
+          //复用 并且比对属性
+          newIndexToOldIndexMap[newIndex - s2] = i + 1;
+          patch(prevChild, c2[newIndex], container);
+        }
+      }
+      console.log("newIndexToOldIndexMap", newIndexToOldIndexMap);
+
+      // // 4.两个key一样 比较属性  移动
+      // //获取不需要移动的最长个数   //最长递增子序列  数组push+二分查找
+      // const sequence = getSequence(newIndexToOldIndexMap);
+      // let j = sequence.length - 1;
+      // 移动 倒叙插入
+      for (i = toBePatched - 1; i >= 0; i--) {
+        const nextIndex = s2 + i; //[e d c h]找到h的索引
+        const nextChild = c2[nextIndex]; //找到h
+        const anchor = nextIndex + 1 < c2.length ? c2[nextIndex + 1].el : null; //[e d c h] f g 找到h的下一个元素
+        if (newIndexToOldIndexMap[i] === 0) {
+          //这是一个新元素 需要插入列表中  插入到某个元素的前面
+          patch(null, nextChild, container, anchor);
+        } else {
+          //不需要移动的 直接跳过
+          // console.log(i, sequence[j], sequence);
+          // if (i === sequence[j]) {
+          //   j--;
+          // } else {
+          //   // console.log("移动", i);
+          //   //根据参照物 移动节点
+          hostInsert(nextChild.el, container, anchor);
+          // }
         }
       }
     }
@@ -184,182 +301,6 @@ function baseCreateRenderer(options) {
   };
 }
 
-// ---------------------------old-------------------------------------------
-export function render(vnode, container) {
-  //vue2 patch
-  //1.初次渲染 2.dom-diff
-  patch(container._vnode, vnode, container);
-  container._vnode = vnode; //上一次渲染的虚拟节点
-}
-
-/**
- *
- * @param n1 老的虚拟节点
- * @param n2 新的虚拟节点
- * @param container 容器
- */
-function patch(n1, n2, container, anchor?) {
-  // console.log("oldvnode", n1);
-  //如果是组件 tag可能是一个对象
-  if (isString(n2.tag)) {
-    //标签
-    processElement(n1, n2, container, anchor);
-  } else if (isObject(n2.tag)) {
-    //组件
-    mountComponent(n2, container);
-  }
-}
-
-function mountComponent(vnode, container) {
-  //根据组件创建一个实例
-  const instance = {
-    vnode,
-    render: null, //setup的返回值
-    subTree: null, //render方法的返回值
-  };
-  // console.log(vnode.tag);
-  const Comp = vnode.tag;
-  instance.render = Comp.setup(vnode.props, instance);
-
-  //局部更新组件  每个组件一个effect
-  effect(() => {
-    //如果返回是对象 templete编译成render函数 再挂载到对象上
-    //这边可以做vue2兼容 拿到options API 和 setup的返回值 做合并
-    instance.subTree = instance.render && instance.render();
-    patch(null, instance.subTree, container);
-  });
-}
-
-function processElement(n1, n2, container, anchor) {
-  if (n1) {
-    patchElement(n1, n2);
-  } else {
-    //初次挂载
-    mountElement(n2, container, anchor);
-  }
-}
-
-function patchElement(n1, n2) {
-  //看n1 n2是否一样 只考虑有key的情况
-  const el = (n2.el = n1.el); //节点一样就复用
-  patchProps(el, n1.props, n2.props);
-  //比对元素的孩子
-  patchChildren(n1, n2, el);
-}
-
-function patchChildren(n1, n2, container) {
-  const c1 = n1.children;
-  const c2 = n2.children;
-  if (isString(c2)) {
-    if (c1 != c2) {
-      //直接用文本替换
-      nodeOps.setElementText(container, c2);
-    }
-  } else {
-    //c2 是数组
-    if (isString(c1)) {
-      //删除c1中原有的内容 再插入新的内容
-      nodeOps.setElementText(container, "");
-      mountChildren(c2, container);
-    } else {
-      patchKeyedChildren(c1, c2, container);
-    }
-  }
-}
-
-function patchKeyedChildren(c1: Array<any>, c2: Array<any>, container) {
-  //内部diff优化 头头比较 尾尾比较 头尾比较 尾头比较 ... 省略
-  //
-  const keyedToNewIndexMap = new Map();
-  // 1.根据新节点 生成 key:index 映射表
-  c2.forEach((child, i) => {
-    keyedToNewIndexMap.set(child.props.key, i);
-  });
-  // console.log("keyedToNewIndexMap", keyedToNewIndexMap);
-  // 2.去老的里面找 有一样的就复用
-  // 3.新的比老的多 添加   老的比新的多 删除
-  const newIndexToOldIndexMap = new Array(c2.length).fill(-1); //新老节点映射表
-  c1.forEach((child, i) => {
-    const newIndex = keyedToNewIndexMap.get(child.props.key);
-    if (newIndex == undefined) {
-      //老的有 新的没有 删除老节点
-      nodeOps.remove(child.el);
-    } else {
-      //复用 并且比对属性
-      newIndexToOldIndexMap[newIndex] = i + 1;
-      patch(child, c2[newIndex], container);
-    }
-  });
-  // 4.两个key一样 比较属性  移动
-  //获取不需要移动的最长个数   //最长递增子序列  数组push+二分查找
-  const sequence = getSequence(newIndexToOldIndexMap);
-  // console.log(newIndexToOldIndexMap, "sequence", sequence);
-  let j = sequence.length - 1;
-  // 移动 从后往前插入
-  for (let i = c2.length - 1; i >= 0; i--) {
-    const anchor = i + 1 < c2.length ? c2[i + 1].el : null;
-    //有可能新的比老的多
-    if (newIndexToOldIndexMap[i] === -1) {
-      //这是一个新元素 需要插入列表中  插入到某个元素的前面
-      patch(null, c2[i], container, anchor);
-    } else {
-      //不需要移动的 直接跳过
-      // console.log(i, sequence[j], sequence);
-      if (i === sequence[j]) {
-        j--;
-      } else {
-        // console.log("移动", i);
-        //先将最后一项插入到页面中
-        nodeOps.insert(c2[i].el, container, anchor);
-      }
-    }
-  }
-}
-
-function patchProps(el, oldProps, newProps: Object) {
-  //比较属性
-  if (oldProps !== newProps) {
-    // 1.将新的属性 全部设置 以新的为准
-    Object.keys(newProps).forEach((key) => {
-      const oldProp = oldProps[key];
-      const newProp = newProps[key];
-      if (newProp !== oldProp) {
-        patchProp(el, key, oldProp, newProp);
-      }
-    });
-    // 2.老的里有 新的里没有 需要删掉
-    Object.keys(oldProps).forEach((key) => {
-      if (!newProps.hasOwnProperty(key)) {
-        patchProp(el, key, oldProps[key], null);
-      }
-    });
-  }
-}
-
-function mountElement(vnode, container, anchor) {
-  const { tag, children, props } = vnode;
-  //讲虚拟节点和真实节点做映射关系
-  const el = (vnode.el = nodeOps.createElement(tag));
-  if (props) {
-    Object.entries(props).forEach((v) => {
-      patchProp(el, v[0], null, v[1]);
-    });
-  }
-
-  if (isArray(children)) {
-    mountChildren(children, el);
-  } else {
-    nodeOps.setElementText(el, children);
-  }
-  nodeOps.insert(el, container, anchor);
-}
-
-function mountChildren(children: Array<any>, el) {
-  children.forEach((child) => {
-    patch(null, child, el); //递归挂载孩子节点
-  });
-}
-
 // https://en.wikipedia.org/wiki/Longest_increasing_subsequence
 function getSequence(arr: number[]): number[] {
   //最长递增子序列的索引
@@ -405,4 +346,3 @@ function getSequence(arr: number[]): number[] {
   }
   return result; //标记
 }
-// ---------------------------old-------------------------------------------
