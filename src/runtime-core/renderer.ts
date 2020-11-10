@@ -122,18 +122,20 @@ function baseCreateRenderer(options) {
         hostSetElementText(el, c2);
       }
     } else {
-      //c2 新的是数组
-      if (prevShapeFlag & ShapeFlags.TEXT_CHILDREN) {
-        //老的是文本
-        //删除c1中原有的内容 再插入新的内容
-        hostSetElementText(el, "");
-        c2.forEach((c) => {
-          patch(null, c, el);
-        });
-        // mountChildren(c2, el);
-      } else {
+      //新的是数组
+      if (prevShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
         //都是数组 核心diff
         // patchKeyedChildren(c1, c2, el);
+      } else {
+        //新的是数组 老的是文本
+        if (prevShapeFlag & ShapeFlags.TEXT_CHILDREN) {
+          //移除老的文本
+          hostSetElementText(el, "");
+        }
+        if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+          //把新元素挂载上去
+          mountChildren(c2, el);
+        }
       }
     }
   };
