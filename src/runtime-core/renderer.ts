@@ -228,12 +228,12 @@ function baseCreateRenderer(options) {
           patch(prevChild, c2[newIndex], container);
         }
       }
-      console.log("newIndexToOldIndexMap", newIndexToOldIndexMap);
+      // console.log("newIndexToOldIndexMap", newIndexToOldIndexMap);
 
-      // // 4.两个key一样 比较属性  移动
-      // //获取不需要移动的最长个数   //最长递增子序列  数组push+二分查找
-      // const sequence = getSequence(newIndexToOldIndexMap);
-      // let j = sequence.length - 1;
+      //移动
+      //获取不需要移动的最长个数   //最长递增子序列  数组push+二分查找
+      const sequence = getSequence(newIndexToOldIndexMap);
+      let j = sequence.length - 1;
       // 移动 倒叙插入
       for (i = toBePatched - 1; i >= 0; i--) {
         const nextIndex = s2 + i; //[e d c h]找到h的索引
@@ -243,15 +243,13 @@ function baseCreateRenderer(options) {
           //这是一个新元素 需要插入列表中  插入到某个元素的前面
           patch(null, nextChild, container, anchor);
         } else {
-          //不需要移动的 直接跳过
-          // console.log(i, sequence[j], sequence);
-          // if (i === sequence[j]) {
-          //   j--;
-          // } else {
-          //   // console.log("移动", i);
-          //   //根据参照物 移动节点
-          hostInsert(nextChild.el, container, anchor);
-          // }
+          //根据参照物 移动节点
+          if (j < 0 || i !== sequence[j]) {
+            hostInsert(nextChild.el, container, anchor);
+          } else {
+            //不需要移动的 直接跳过
+            j--;
+          }
         }
       }
     }
