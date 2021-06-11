@@ -1,5 +1,5 @@
-import { shared } from '@vue/shared'
-const reactivity = {
-  name: '1'
-}
-export { reactivity }
+// import { shared } from '@vue/shared'
+// const reactivity = {
+//   name: '1'
+// }
+export { reactive, readonly, shallowReactive, shallowReadonly } from './reactive'
