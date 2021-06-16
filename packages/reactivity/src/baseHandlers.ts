@@ -1,6 +1,8 @@
 // 实现 new Proxy(target, baseHandlers)
 
 import { isObject } from '@vue/shared'
+import { track } from './effect'
+import { TrackOpTypes } from './operators'
 import { reactive, readonly } from './reactive'
 
 // 是不是只读的
@@ -16,9 +18,9 @@ function createGetter(isReadonly = false, shallow = false) {
     // }
 
     if (!isReadonly) {
-      //依赖收集
-      // console.log('数据做了获取操作', key)
-      // track(target, key)
+      //依赖收集,等数据变化后更新对应的视图
+      console.log('执行effect会取值，收集effect', key)
+      track(target, TrackOpTypes.GET, key)
     }
 
     if (shallow) {
@@ -32,7 +34,13 @@ function createGetter(isReadonly = false, shallow = false) {
     return res
   }
 }
-function createSetter(shallow = false) {}
+function createSetter(shallow = false) {
+  return function (target: object, key: PropertyKey, value: any, receiver: any) {
+    const res = Reflect.set(target, key, value, receiver)
+    //当数据更新时，通知对应属性的effect更新
+    return res
+  }
+}
 
 const get = createGetter()
 const shallowGet = createGetter(false, true)

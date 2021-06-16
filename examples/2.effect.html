@@ -11,10 +11,14 @@
 <body>
   <script src="../node_modules/@vue/reactivity/dist/reactivity.global.js"></script>
   <script>
-    const { reactive, shallowReactive, readonly, shallowReadonly } = VueReactivity
-    const state = shallowReadonly({ name: 'lxy', age: { a: 22 } })
-    state.name = 'a'
-    console.log(state)
+    const { reactive, effect } = VueReactivity
+    const state = reactive({ name: 'lxy', age: { a: 22 } })
+    effect(() => {
+      console.log('test effect', state.name, state.age)
+    })
+    setTimeout(() => {
+      state.name = 'lxy111'
+    }, 1000);
   </script>
 </body>
 
