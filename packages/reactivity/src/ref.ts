@@ -1,4 +1,4 @@
-import { isObject, needChanged } from '@vue/shared'
+import { isArray, isObject, needChanged } from '@vue/shared'
 import { track, trigger } from './effect'
 import { TrackTypes, TriggerTypes } from './operators'
 import { reactive } from './reactive'
@@ -35,4 +35,28 @@ class RefImpl {
 
 function createRef(v: any, shallow = false) {
   return new RefImpl(v, shallow)
+}
+
+class ObjectRefImpl {
+  public _v_isRef = true
+  constructor(public target: any, public key: string | number) {}
+  get value() {
+    return this.target[this.key]
+  }
+  set value(newValue) {
+    this.target[this.key] = newValue
+  }
+}
+//可以把一个对象的值 转成ref类型
+export function toRef(target: any, key: string | number) {
+  return new ObjectRefImpl(target, key)
+}
+
+export function toRefs(obj: any) {
+  //obj可能是数组或者对象
+  const res: any = isArray(obj) ? new Array(obj.length) : {}
+  for (let key in obj) {
+    res[key] = toRef(obj, key)
+  }
+  return res
 }

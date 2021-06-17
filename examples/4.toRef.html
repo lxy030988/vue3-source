@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <div id="app"></div>
+  <script src="../node_modules/@vue/reactivity/dist/reactivity.global.js"></script>
+  <script>
+    const { reactive, toRef, toRefs } = VueReactivity
+    const state = reactive({ name: 'lxy', age: { a: 22 } })
+    const stateToRef = toRef(state, 'name')
+    console.log('stateToRef', stateToRef)
+
+    const stateToRefs = toRefs(state)
+    console.log('stateToRefs', stateToRefs, stateToRefs.name, stateToRefs.age)
+
+  </script>
+</body>
+
+</html>
