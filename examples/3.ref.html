@@ -12,21 +12,15 @@
   <div id="app"></div>
   <script src="../node_modules/@vue/reactivity/dist/reactivity.global.js"></script>
   <script>
-    const { reactive, effect } = VueReactivity
-    const state = reactive({ name: 'lxy', age: { a: 22 }, arr: [1, 2, 3] })
+    const { ref, effect } = VueReactivity
+    const name = ref('lxy')//将普通类型转化成对象，这个对象中的value属性指向原来的值
+    console.log('name', name)
     effect(() => {
-      // console.log('test effect', state.name, state.arr)
-      app.innerHTML = state.arr
+      app.innerHTML = name.value //track
     })
     setTimeout(() => {
-      // state.arr.length = 1
-      state.arr[10] = 1
+      name.value = 'lxy111' //trigger
     }, 1000);
-
-    /*
-    1.effect中所有属性值，都会收集effect track
-    2.当这个属性值发生变化，会重新执行effect trigger
-    */
   </script>
 </body>
 
