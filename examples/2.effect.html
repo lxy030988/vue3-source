@@ -9,15 +9,18 @@
 </head>
 
 <body>
+  <div id="app"></div>
   <script src="../node_modules/@vue/reactivity/dist/reactivity.global.js"></script>
   <script>
     const { reactive, effect } = VueReactivity
-    const state = reactive({ name: 'lxy', age: { a: 22 } })
+    const state = reactive({ name: 'lxy', age: { a: 22 }, arr: [1, 2, 3] })
     effect(() => {
-      console.log('test effect', state.name, state.age)
+      // console.log('test effect', state.name, state.arr)
+      app.innerHTML = state.arr
     })
     setTimeout(() => {
-      state.name = 'lxy111'
+      // state.arr.length = 1
+      state.arr[10] = 1
     }, 1000);
   </script>
 </body>

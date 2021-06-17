@@ -1,3 +1,7 @@
-export const enum TrackOpTypes {
+export const enum TrackTypes {
   GET
+}
+export const enum TriggerTypes {
+  ADD,
+  SER
 }
