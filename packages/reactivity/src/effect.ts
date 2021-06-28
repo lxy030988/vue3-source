@@ -119,5 +119,11 @@ export function trigger(type: TriggerTypes, target: object, key: PropertyKey, va
     }
   }
 
-  effects.forEach((effect: any) => effect())
+  effects.forEach((effect: any) => {
+    if (effect.options.scheduler) {
+      effect.options.scheduler()
+    } else {
+      effect()
+    }
+  })
 }
