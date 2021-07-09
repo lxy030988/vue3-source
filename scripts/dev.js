@@ -1,7 +1,7 @@
 // const fs = require('fs')
 const execa = require('execa') //开启子进程  使用rollup进行打包
 
-const target = 'reactivity'
+const target = 'runtime-dom'
 
 async function build(target) {
   await execa('rollup', ['-cw', '--environment', `TARGET:${target}`], {
