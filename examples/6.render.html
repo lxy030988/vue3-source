@@ -12,16 +12,17 @@
   <div id="app"></div>
   <script src="../node_modules/@vue/runtime-dom/dist/runtime-dom.global.js"></script>
   <script>
-    console.log('VueRuntimeDom', VueRuntimeDom)
-    // const { createApp, h } = VueRuntimeDom
+    // console.log('VueRuntimeDom', VueRuntimeDom)
+    const { createApp, h } = VueRuntimeDom
 
-    // let App = {
-    //   render(proxy) {
-    //     return h('div', { style: { color: 'red' } }, 'hello')
-    //   }
-    // }
+    let App = {
+      render(proxy) {
+        console.log('render')
+        // return h('div', { style: { color: 'red' } }, 'hello')
+      }
+    }
 
-    // createApp(App).mount('#app')
+    createApp(App, { name: 'aaa', age: 20 }).mount('#app')
   </script>
 </body>
 
