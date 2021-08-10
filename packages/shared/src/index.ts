@@ -8,3 +8,4 @@ export const needChanged = (v: any, old: any) => v !== old
 export const isString = (v: any) => typeof v === 'string'
 export const isFunction = (v: any) => typeof v === 'function'
 export const extend = Object.assign
+export { ShapeFlags } from './shapeFlags'
