@@ -17,10 +17,9 @@ export function createAppAPI(render: Function) {
 
         //创建虚拟节点
         const vnode: any = createVnode(rootComponent, rootProps)
-
         //调用  render
         render(vnode, container)
-        this._container = container
+        app._container = container
       }
     }
     return app

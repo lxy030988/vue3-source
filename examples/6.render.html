@@ -16,8 +16,11 @@
     const { createApp, h } = VueRuntimeDom
 
     let App = {
-      render(proxy) {
-        console.log('render')
+      setup(props, ctx) {
+        console.log('setup', props, ctx)
+      },
+      render(proxy) {//effect函数 数据更新会重新渲染
+        console.log('render', proxy.name)
         // return h('div', { style: { color: 'red' } }, 'hello')
       }
     }
