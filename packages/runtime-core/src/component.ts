@@ -1,4 +1,4 @@
-import { isFunction, ShapeFlags } from '@vue/shared'
+import { isFunction, isObject, ShapeFlags } from '@vue/shared'
 import { PublicInstanceProxyHandlers } from './componentPublicInstance'
 
 export function createComponentInstance(vnode: any) {
@@ -44,14 +44,14 @@ function setupStatefulComponent(instance: TInstance) {
   instance.proxy = new Proxy(instance.ctx, PublicInstanceProxyHandlers as any)
   //2.获取组件的类型 拿到组件的setup方法
   const Component = instance.type
-  const { setup, render } = Component
-  let setupContext = createSetupContext(instance)
-  setup(instance.props, setupContext)
-  render(instance.proxy)
-  if (false) {
-    const setupResult = setup() //获取setup的返回值
-    //判断返回值类型
+  const { setup } = Component
+  if (setup) {
+    let setupContext = createSetupContext(instance)
+    const setupResult = setup(instance.props, setupContext)
     handelSetupResult(instance, setupResult)
+    // render(instance.proxy)
+  } else {
+    finishComponentSetup(instance)
   }
 }
 
@@ -68,21 +68,22 @@ function createSetupContext(instance: TInstance) {
 //ctx 就是4个参数 为了开发时使用
 //proxy 为了取值方便
 
-function handelSetupResult(instance: any, setupResult: any) {
+function handelSetupResult(instance: TInstance, setupResult: any) {
   if (isFunction(setupResult)) {
     instance.render = setupResult //获取render方法
-  } else {
+  } else if (isObject(setupResult)) {
     instance.setupState = setupResult
   }
   finishComponentSetup(instance)
 }
 
-function finishComponentSetup(instance: any) {
+function finishComponentSetup(instance: TInstance) {
   const Component = instance.type
-  if (Component.render) {
+  if (!instance.render) {
+    if (!Component.render && Component.template) {
+      // Component.render = compile(Component.template) 编译成render函数
+    }
     instance.render = Component.render
-  } else if (!instance.render) {
-    // compile(Component.template) 编译成render函数
   }
 
   //vue3 是兼容vue2的 data watch ...   applyOptions() vue2 和 vue3 中 setup的返回值做合并

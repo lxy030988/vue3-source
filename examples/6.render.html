@@ -18,10 +18,22 @@
     let App = {
       setup(props, ctx) {
         console.log('setup', props, ctx)
+
+        return (proxy) => {
+          console.log('setup return', proxy)
+          return h('div', { style: { color: 'red' } }, 'hello')
+        }
       },
       render(proxy) {//effect函数 数据更新会重新渲染
         console.log('render', proxy.name)
-        // return h('div', { style: { color: 'red' } }, 'hello')
+        // h('div',{a:1})
+        // h('div',{},'hello word')
+        // h('div',{},h('span'))
+        // h('div',h('span'))
+        // h('div',[h('span'),h('span')])
+        // h('div',null,h('span'),h('span'))
+        // h('div',null,'a','b','c')
+        return h('div', { style: { color: 'red' } }, 'hello')
       }
     }
 

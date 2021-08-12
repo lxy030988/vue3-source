@@ -1,3 +1,4 @@
+import { effect } from '@vue/reactivity'
 import { ShapeFlags } from '@vue/shared'
 import { createAppAPI } from './apiCreateApp'
 import { createComponentInstance, setupComponent } from './component'
@@ -9,20 +10,29 @@ export function createRenderer(rendererOptions: any) {
     initialVnode: any,
     container: any
   ) => {
-    // effect(function componentEffect() {
-    //   if (!instance.isMounted) {
-    //     //渲染组件中的内容
-    //     instance.subTree = instance.render && instance.render() //组件对应渲染的结果
-    //     patch(null, instance.subTree, container)
-    //     instance.isMounted = true
-    //   } else {
-    //     //更新逻辑
-    //     const prev = instance.subTree
-    //     const next = instance.render && instance.render()
-    //     // console.log(prev, next);
-    //     patch(prev, next, container)
-    //   }
-    // })
+    //需要创建一个effect 在effect中调用render方法，这样render方法中拿到的数据会收集这个effect 属性更新时effect会重新执行
+
+    effect(function componentEffect() {
+      //每个组件都有一个effect  vue3是组件级别更新  数据变化会重新执行对应组件的effect
+      if (!instance.isMounted) {
+        //初次渲染
+        let proxyToUse = instance.type
+        //$vnode  _vnode
+        //vnode  subTree
+        instance.subTree =
+          instance.render && instance.render.call(proxyToUse, proxyToUse) //组件对应渲染的结果
+        // console.log('instance.subTree', instance.subTree)
+        // 用render函数的返回值（vnode）继续渲染
+        patch(null, instance.subTree, container)
+        instance.isMounted = true
+      } else {
+        //更新逻辑
+        // const prev = instance.subTree
+        // const next = instance.render && instance.render()
+        // // console.log(prev, next);
+        // patch(prev, next, container)
+      }
+    })
   }
 
   const mountComponent = (initialVnode: any, container: any) => {
@@ -30,7 +40,7 @@ export function createRenderer(rendererOptions: any) {
     //1.先有实例
     const instance = (initialVnode.component =
       createComponentInstance(initialVnode))
-    //2.需要的数据解析到实例上
+    //2.需要的数据解析到实例上 state props attrs render ...
     setupComponent(instance)
     //3.创建一个effect 让render函数执行
     setupRenderEffect(instance, initialVnode, container)
@@ -56,7 +66,7 @@ export function createRenderer(rendererOptions: any) {
 
     if (shapeFlag & ShapeFlags.ELEMENT) {
       //元素
-      console.log('元素')
+      console.log('元素', n1, n2, container)
       // processElement(n1, n2, container, anchor)
     } else if (shapeFlag & ShapeFlags.STATEFUL_COMPONENT) {
       //组件
