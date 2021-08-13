@@ -13,15 +13,26 @@
   <script src="../node_modules/@vue/runtime-dom/dist/runtime-dom.global.js"></script>
   <script>
     // console.log('VueRuntimeDom', VueRuntimeDom)
-    const { createApp, h } = VueRuntimeDom
+    const { createApp, h, reactive } = VueRuntimeDom
 
     let App = {
       setup(props, ctx) {
-        console.log('setup', props, ctx)
+        // console.log('setup', props, ctx)
+
+        const state = reactive({ name: 'lxy' })
 
         return (proxy) => {
-          console.log('setup return', proxy)
-          return h('div', { style: { color: 'red' } }, 'hello')
+          // console.log('setup return', proxy)
+          return h('div', {
+            style: { color: 'red' },
+            onClick: () => {
+              console.log('onClick')
+              state.name = 'onClick' //state.name值不变也会更新一次
+              state.name = '1' //state.name值不变也会更新一次
+              state.name = '2' //state.name值不变也会更新一次
+              state.name = 'lxy' //state.name值不变也会更新一次
+            }
+          }, state.name)
         }
       },
       render(proxy) {//effect函数 数据更新会重新渲染
@@ -33,7 +44,9 @@
         // h('div',[h('span'),h('span')])
         // h('div',null,h('span'),h('span'))
         // h('div',null,'a','b','c')
-        return h('div', { style: { color: 'red' } }, 'hello')
+        return h('div', {
+          style: { color: 'red' }
+        }, 'hello')
       }
     }
 

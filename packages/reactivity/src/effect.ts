@@ -63,7 +63,13 @@ export function track(target: object, type: TrackTypes, key: PropertyKey) {
 }
 
 // 触发视图更新操作 找属性对应的effect，让其执行（数组、对象）
-export function trigger(type: TriggerTypes, target: object, key: PropertyKey, value?: any, oldValue?: any) {
+export function trigger(
+  type: TriggerTypes,
+  target: object,
+  key: PropertyKey,
+  value?: any,
+  oldValue?: any
+) {
   //如果这个属性没有收集过effect，那么不需要做任何操作
   const depsMap = targetMap.get(target)
   if (!depsMap) {
@@ -121,7 +127,7 @@ export function trigger(type: TriggerTypes, target: object, key: PropertyKey, va
 
   effects.forEach((effect: any) => {
     if (effect.options.scheduler) {
-      effect.options.scheduler()
+      effect.options.scheduler(effect)
     } else {
       effect()
     }

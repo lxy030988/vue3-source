@@ -22,7 +22,7 @@ export const createVnode = (
     children,
     component: null, //组件的实例
     el: null, //虚拟节点要和真实节点做映射关系
-    key: props.key,
+    key: props?.key,
     shapeFlag //虚拟节点的类型 元素 组件 等
   }
 
@@ -46,4 +46,13 @@ type TVnode = ReturnType<typeof createVnode>
 
 export function isVnode(vnode: TVnode) {
   return vnode.__v_isVnode
+}
+
+export const Text = Symbol('Text')
+export function normalizeVNode(child: any) {
+  if (isObject(child)) {
+    return child
+  }
+
+  return createVnode(Text, null, String(child))
 }

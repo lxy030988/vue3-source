@@ -7,7 +7,7 @@ export const nodeOps = {
     parent && parent.removeChild(child)
   },
   insert(
-    child: HTMLElement,
+    child: HTMLElement | Text,
     parent: HTMLElement,
     anchor: HTMLElement | null = null
   ) {

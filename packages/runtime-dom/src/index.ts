@@ -26,4 +26,8 @@ export function createApp(rootComponent: any, rootProps = null) {
   return app
 }
 
+export type TRendererOptions = typeof rendererOptions
+
 export * from '@vue/runtime-core'
+
+export * from '@vue/reactivity'
