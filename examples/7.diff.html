@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <div id="app"></div>
+  <script src="../node_modules/@vue/runtime-dom/dist/runtime-dom.global.js"></script>
+  <script>
+    // console.log('VueRuntimeDom', VueRuntimeDom)
+    const { createApp, h, reactive, ref } = VueRuntimeDom
+
+    let App = {
+      setup(props, ctx) {
+        const flag = ref(true)
+
+        setTimeout(() => {
+          flag.value = false
+        }, 2000)
+
+        return (proxy) => {
+          return flag.value ?
+            h('div', { style: { color: 'red' } }, 'lxy1') :
+            h('div', { style: { color: 'blue' } }, 'lxy2')
+        }
+      }
+    }
+
+    createApp(App, { name: 'aaa', age: 20 }).mount('#app')
+
+    //将组件变成vnode => 将vnode变成真实dom => 插入到页面上
+    //render方法 渲染一个虚拟节点 将他挂载到具体的dom元素上
+    // vue3的执行核心 patch
+
+    //组件创建的过程中 
+    //1.创建一个instance 初始化 
+    //2.根据用户传入的组件 拿到对应的内容 来填充这个instance对象 
+    //3.创建effect并且调用render方法，数据会将对应的effect收集起来 
+    //4.拿到render方法返回的结果 再次走渲染流程 patch
+
+    //组件渲染的顺序是先父后子，执行顺序是深度优先
+
+    //每个组件都是一个effect函数
+  </script>
+</body>
+
+</html>

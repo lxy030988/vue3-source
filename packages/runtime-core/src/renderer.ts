@@ -10,13 +10,14 @@ import { normalizeVNode, Text } from './vnode'
 export function createRenderer(rendererOptions: TRendererOptions) {
   const {
     insert: hostInsert,
-    // remove: hostRemove,
+    remove: hostRemove,
     patchProp: hostPatchProp,
     createElement: hostCreateElement,
     createText: hostCreateText,
     // createComment: hostCreateComment,
     // setText: hostSetText,
-    setElementText: hostSetElementText
+    setElementText: hostSetElementText,
+    nextSibling: hostNextSibling
   } = rendererOptions
 
   //------------------组件--------------
@@ -32,7 +33,7 @@ export function createRenderer(rendererOptions: TRendererOptions) {
         //每个组件都有一个effect  vue3是组件级别更新  数据变化会重新执行对应组件的effect
         if (!instance.isMounted) {
           //初次渲染
-          let proxyToUse = instance.type
+          let proxyToUse = instance.proxy
           //$vnode  _vnode
           //vnode  subTree
           instance.subTree =
@@ -43,11 +44,13 @@ export function createRenderer(rendererOptions: TRendererOptions) {
           instance.isMounted = true
         } else {
           //更新逻辑
-          console.log('更新逻辑')
-          // const prev = instance.subTree
-          // const next = instance.render && instance.render()
-          // // console.log(prev, next);
-          // patch(prev, next, container)
+          let proxyToUse = instance.proxy
+
+          const prev = instance.subTree
+          const next =
+            instance.render && instance.render.call(proxyToUse, proxyToUse)
+          console.log('更新逻辑', prev, next)
+          patch(prev, next, container)
         }
       },
       {
@@ -85,7 +88,7 @@ export function createRenderer(rendererOptions: TRendererOptions) {
     }
   }
 
-  const mountElement = (vnode: any, container: any) => {
+  const mountElement = (vnode: any, container: any, anchor: any) => {
     // 递归渲染
     const { shapeFlag, children, props, type } = vnode
     //将虚拟节点和真实节点做映射关系
@@ -102,15 +105,78 @@ export function createRenderer(rendererOptions: TRendererOptions) {
         hostPatchProp(el, key, null, props[key])
       }
     }
-    hostInsert(el, container)
+    hostInsert(el, container, anchor)
   }
 
-  const processElement = (n1: any, n2: any, container: any) => {
+  const patchProps = (el: HTMLElement, oldProps: any, newProps: any) => {
+    //比较属性
+    if (oldProps !== newProps) {
+      // 1.将新的属性 全部设置 以新的为准
+      for (const key in newProps) {
+        const oldProp = oldProps[key]
+        const newProp = newProps[key]
+        if (newProp !== oldProp) {
+          hostPatchProp(el, key, oldProp, newProp)
+        }
+      }
+
+      // 2.老的里有 新的里没有 需要删掉
+      for (const key in oldProps) {
+        if (!newProps.hasOwnProperty(key)) {
+          hostPatchProp(el, key, oldProps[key], null)
+        }
+      }
+    }
+  }
+
+  const patchChildren = (n1: any, n2: any, el: any) => {
+    const c1 = n1.children
+    const c2 = n2.children
+    console.log('patchChildren', c1, c2)
+    //老的有儿子 新的没儿子  新的有儿子 老的没儿子  新老都有儿子   新老都是文本
+    // const prevShapeFlag = n1.shapeFlag
+    // const shapeFlag = n2.shapeFlag
+    // if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
+    //   //新的是文本
+    //   if (c1 != c2) {
+    //     //直接用新的文本替换
+    //     hostSetElementText(el, c2)
+    //   }
+    // } else {
+    //   //新的是数组
+    //   if (prevShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+    //     //都是数组 核心diff
+    //     // console.log("核心diff");
+    //     patchKeyedChildren(c1, c2, el)
+    //   } else {
+    //     //新的是数组 老的是文本
+    //     if (prevShapeFlag & ShapeFlags.TEXT_CHILDREN) {
+    //       //移除老的文本
+    //       hostSetElementText(el, '')
+    //     }
+    //     if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+    //       //把新元素挂载上去
+    //       mountChildren(c2, el)
+    //     }
+    //   }
+    // }
+  }
+
+  const patchElement = (n1: any, n2: any, container: any) => {
+    //元素是相同节点  n1 n2 type 一样就复用
+    const el = (n2.el = n1.el)
+    //更新属性
+    patchProps(el, n1.props || {}, n2.props || {})
+    // //更新儿子
+    patchChildren(n1, n2, el)
+  }
+
+  const processElement = (n1: any, n2: any, container: any, anchor: any) => {
     if (n1) {
-      //  patchElement(n1, n2)
+      patchElement(n1, n2, container)
     } else {
       //初次挂载
-      mountElement(n2, container)
+      mountElement(n2, container, anchor)
     }
   }
   //------------------处理元素--------------
@@ -123,7 +189,16 @@ export function createRenderer(rendererOptions: TRendererOptions) {
   }
   //------------------处理文本--------------
 
-  const patch = (n1: any, n2: any, container: any) => {
+  const isSameVnodeType = (n1: any, n2: any) => {
+    return n1.type === n2.type && n1.key === n2.key
+  }
+
+  const unmount = (n1: any) => {
+    //如果是组件 调用组件的生命周期
+    hostRemove(n1.el)
+  }
+
+  const patch = (n1: any, n2: any, container: any, anchor: any = null) => {
     if (n1 === n2) {
       return
     }
@@ -131,10 +206,12 @@ export function createRenderer(rendererOptions: TRendererOptions) {
     //针对不同的类型 做初始化操作
     const { shapeFlag, type } = n2
 
-    // if (n1 && !isSameVnodeType(n1, n2)) {
-    //   hostRemove(n1.el)
-    //   n1 = null
-    // }
+    if (n1 && !isSameVnodeType(n1, n2)) {
+      //把以前的删掉 换成n2
+      anchor = hostNextSibling(n1.el)
+      unmount(n1)
+      n1 = null //重新渲染n2对应的内容
+    }
 
     switch (type) {
       case Text:
@@ -143,12 +220,11 @@ export function createRenderer(rendererOptions: TRendererOptions) {
       default:
         if (shapeFlag & ShapeFlags.ELEMENT) {
           //元素
-          console.log('元素', n1, n2, container)
-          processElement(n1, n2, container)
+          // console.log('元素', n1, n2, container)
+          processElement(n1, n2, container, anchor)
         } else if (shapeFlag & ShapeFlags.STATEFUL_COMPONENT) {
           //组件
-          console.log('组件', n1, n2, container)
-
+          // console.log('组件', n1, n2, container)
           processComponent(n1, n2, container)
         }
     }
