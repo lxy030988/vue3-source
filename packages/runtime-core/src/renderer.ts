@@ -385,6 +385,7 @@ export function createRenderer(rendererOptions: TRendererOptions) {
 }
 
 // https://en.wikipedia.org/wiki/Longest_increasing_subsequence
+//贪心+二分查找
 function getSequence(arr: number[]): number[] {
   //最长递增子序列的索引
   const p = arr.slice() //拷贝一个新数组
@@ -427,5 +428,5 @@ function getSequence(arr: number[]): number[] {
     result[u] = v
     v = p[v]
   }
-  return result //标记
+  return result //标记 结果是索引
 }
