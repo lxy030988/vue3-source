@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <div id="app"></div>
+  <script src="../dist/runtime-dom.global.js"></script>
+  <script>
+    const { h, createVNode, render } = VueRuntimeDOM
+    const App = {
+      render() {
+        return h('div', 'hello world')
+      }
+    }
+
+    const vnode = createVNode(App) //少了一个传递节点操作和属性操作的api
+    render(vnode, document.getElementById('app'))
+
+  </script>
+</body>
+
+</html>

@@ -23,3 +23,28 @@
 
 - yarn installl 会把packages下面的包软链到node_modules下面
 
+
+
+
+
+## 编译过程
+
+- https://vue-next-template-explorer.netlify.app/
+- 先将模板进行分析，生成对应的ast树（对象来描述语法的）
+- 做转换流程  transform  对动态节点做一些标记 ： 指令 插槽 事件 属性 ...   patchFlag
+- 代码生成 codegen 生成最终的代码
+
+### Block => Block Tree
+
+- diff算法的特点是递归遍历，每次比较同一层；之前写的都是全量递归
+- Block 的作用就是收集动态节点（树下面所有的），将树的递归拍平成一个数组
+- 在createVNode的时候，会判断这个节点是动态的，就让外层的Block 收集起来
+- 目的是  diff的时候只diff动态的节点
+- 如果会影响结构的都会被标记成Block 节点  v-if  v-else  v-for
+- 父亲也会收集儿子Block => Block Tree(多个节点组成的)
+- 改变结构的也要封装到Block中，我们期望的更新方式是拿以前的和现在的去比，靶向更新；如果前后节点个数不一致，那只能全量更新
+
+### patchFlag
+
+- 对不同的动态节点进行描述的
+- 表示要比对哪些类型

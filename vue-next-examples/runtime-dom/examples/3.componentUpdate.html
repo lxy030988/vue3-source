@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <div id="app"></div>
+  <script src="../dist/runtime-dom.global.js"></script>
+  <script>
+    const { h, createVNode, render, reactive } = VueRuntimeDOM
+
+    // 组件如何更新？  自身数据变化  外界属性变化也要更新
+    // 父组件给子组件传入属性 子组件是否要更新？更新一次
+    // 子组件使用了属性  属性变化了要不要更新？更新一次
+
+    const My = {
+      props: {
+        name: String
+      },
+      render() {
+        return h('p', this.name)
+      }
+    }
+    const App = {
+      setup() {
+        const state = reactive({ name: 'lxy' })
+        setTimeout(() => {
+          state.name = 'lxy2'
+        }, 2000)
+
+        return () => {
+          return h('div', {}, h(My, { name: state.name }))
+        }
+      }
+    }
+
+    const vnode = createVNode(App) //少了一个传递节点操作和属性操作的api
+    render(vnode, document.getElementById('app'))
+
+    // 父组件先更新状态 产生一个新的虚拟节点  开始走diff流程
+    // 如果遇到的是组件 属性是动态的 会比较两个组件，如果属性不一样要更新组件
+    // 组件需要更新自己身上的属性，并且重新生成子节点
+
+  </script>
+</body>
+
+</html>
