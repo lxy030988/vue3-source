@@ -48,3 +48,20 @@
 
 - 对不同的动态节点进行描述的
 - 表示要比对哪些类型
+
+### 性能优化
+- 每次重新渲染 都要创建虚拟节点 createVnode 
+- 静态提升 静态节点进行提取
+
+### 事件缓存
+- 缓存事件 防止重新创建事件
+
+### vue3和vue2对比
+- 响应式原理 proxy defineProperty
+- vue3 diff算法(可以根据patchflag做diff) 和 vue2的区别 (全量diff) 最长递增子序列
+- options Api / composition Api => treeshaking
+- Fragment 多个根节点、 Teleport、Suspense、Keep-alive Transition
+- vue3 ts / vue2 flow
+- 自定义渲染器 createRenderer() 传入自己的渲染方法 好处 可以根据vue核心来实现不同平台的代码
+- monorepo的代码管理方法
+- 模板编译优化
