@@ -1,6 +1,6 @@
 import { effect } from '@vue/reactivity'
 import { TRendererOptions } from '@vue/runtime-dom'
-import { ShapeFlags } from '@vue/shared'
+import { invokeArrayFns, ShapeFlags } from '@vue/shared'
 import { createAppAPI } from './apiCreateApp'
 import { createComponentInstance, setupComponent } from './component'
 import { queueIob } from './scheduler'
@@ -33,6 +33,11 @@ export function createRenderer(rendererOptions: TRendererOptions) {
         //每个组件都有一个effect  vue3是组件级别更新  数据变化会重新执行对应组件的effect
         if (!instance.isMounted) {
           //初次渲染
+          const { bm, m } = instance
+          if (bm) {
+            invokeArrayFns(bm)
+          }
+
           let proxyToUse = instance.proxy
           //$vnode  _vnode
           //vnode  subTree
@@ -42,8 +47,19 @@ export function createRenderer(rendererOptions: TRendererOptions) {
           // 用render函数的返回值（vnode）继续渲染
           patch(null, instance.subTree, container)
           instance.isMounted = true
+
+          if (m) {
+            //mounted 要求必须在子组件完成后才会调用自己
+            invokeArrayFns(m)
+          }
         } else {
           //更新逻辑
+
+          let { bu, u } = instance
+          if (bu) {
+            invokeArrayFns(bu)
+          }
+
           let proxyToUse = instance.proxy
 
           const prev = instance.subTree
@@ -51,6 +67,10 @@ export function createRenderer(rendererOptions: TRendererOptions) {
             instance.render && instance.render.call(proxyToUse, proxyToUse)
           console.log('更新逻辑', prev, next)
           patch(prev, next, container)
+
+          if (u) {
+            invokeArrayFns(u)
+          }
         }
       },
       {

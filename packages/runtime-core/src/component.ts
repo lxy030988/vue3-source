@@ -39,6 +39,15 @@ export function setupComponent(instance: TInstance) {
   }
 }
 
+export let currentInstance: any = null
+export let setCurrentInstance = (instance: TInstance | null) => {
+  currentInstance = instance
+}
+export let getCurrentInstance = () => {
+  //在setup中获取当前组件实例
+  return currentInstance
+}
+
 function setupStatefulComponent(instance: TInstance) {
   //1.代理 传递给render函数的参数
   instance.proxy = new Proxy(instance.ctx, PublicInstanceProxyHandlers as any)
@@ -46,10 +55,11 @@ function setupStatefulComponent(instance: TInstance) {
   const Component = instance.type
   const { setup } = Component
   if (setup) {
+    currentInstance = instance
     let setupContext = createSetupContext(instance)
-    const setupResult = setup(instance.props, setupContext)
+    const setupResult = setup(instance.props, setupContext) //instance 中props attrs slots emit expose 会被提取出来，因为在开发过程中会使用这些属性
     handelSetupResult(instance, setupResult)
-    // render(instance.proxy)
+    currentInstance = null
   } else {
     finishComponentSetup(instance)
   }
