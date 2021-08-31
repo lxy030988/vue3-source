@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <div id="app"></div>
+  <script src="../node_modules/@vue/compiler-dom/dist/compiler-dom.global.js"></script>
+  <script>
+    // console.log('VueCompilerDom', VueCompilerDom)
+    const { baseCompile } = VueCompilerDom
+
+    //vue3 可以直接写render函数 h('div') 并不友好
+    //jsx语法 => h('div') 没有优化
+    //vue3 template => render函数 具备优化的特点 patchFlag blockTree
+    //1.把html解析成抽象语法树(ast)描述语法本身
+    //2.转化ast树 加标记和进行优化 transform
+    //3.生成render函数 字符串
+
+    let ast = baseCompile('lixiangyu<div> {{xxx}} </div>')
+    console.log(ast)
+  </script>
+</body>
+
+</html>
