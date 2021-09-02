@@ -35,14 +35,55 @@ export const enum NodeTypes {
 function isEnd(context: TContext) {
   //context.source ='' 解析完成
   const s = context.source
+  if (context.source.startsWith('</')) {
+    return true
+  }
   return !s
 }
 
-function parseElement(context: TContext) {}
+function advanceSpaces(context: TContext): void {
+  const match = /^[\t\r\n\f ]+/.exec(context.source)
+  if (match) {
+    advanceBy(context, match[0].length)
+  }
+}
+
+function parseTag(context: TContext) {
+  const start = getCursor(context)
+  const match = /^<\/?([a-z][^\t\r\n\f />]*)/i.exec(context.source)!
+  const tag = match[1]
+  advanceBy(context, match[0].length)
+  advanceSpaces(context)
+
+  const isSelfClosing = context.source.startsWith('/>')
+  advanceBy(context, isSelfClosing ? 2 : 1)
+
+  return {
+    type: NodeTypes.ELEMENT,
+    isSelfClosing,
+    tag,
+    children: [{}],
+    loc: getSelection(context, start)
+  }
+}
+
+function parseElement(context: TContext) {
+  //1.解析标签名
+  const element = parseTag(context)
+
+  //处理儿子
+  const children = parseChildren(context) //有可能没有儿子 直接跳出  结束标签
+
+  if (context.source.startsWith('</')) {
+    parseTag(context) //解析关闭标签时 同时会移除关闭信息并更新偏移量
+  }
+  element.children = children
+  element.loc = getSelection(context, element.loc.start)
+  return element
+}
 
 function parseInterpolation(context: TContext) {
   //{{ name }}
-  console.log('parseInterpolation', context)
   const start = getCursor(context) //获取表达式的start位置
   const closeIndex = context.source.indexOf('}}')
   advanceBy(context, 2)
@@ -79,10 +120,8 @@ function getCursor(context: TContext) {
   return { column, line, offset }
 }
 
-type TCursor = ReturnType<typeof getCursor>
-
 function advancePositionWithMutation(
-  context: TContext | TCursor,
+  context: TContext | Position,
   source: string,
   len: number
 ) {
@@ -151,7 +190,6 @@ function parseChildren(context: TContext) {
     if (s[0] === '<') {
       //标签
       node = parseElement(context)
-      break
     } else if (s.startsWith('{{')) {
       //表达式
       node = parseInterpolation(context)
@@ -161,7 +199,18 @@ function parseChildren(context: TContext) {
     }
     nodes.push(node)
   }
-  return nodes
+
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i]
+    if (node.type === NodeTypes.TEXT) {
+      if (!/[^\t\r\n\f ]/.test(node.content)) {
+        nodes[i] = null
+      } else {
+        node.content = node.content.replace(/[\t\r\n\f ]+/g, ' ')
+      }
+    }
+  }
+  return nodes.filter(Boolean)
 }
 function createParserContext(content: string) {
   return {
@@ -177,7 +226,25 @@ function baseParse(content: string) {
   //标识节点的信息 行 列 偏移量
   //每解析一段 就移除一部分
   const context = createParserContext(content)
-  return parseChildren(context)
+  const start = getCursor(context)
+
+  return createRoot(parseChildren(context), getSelection(context, start))
+}
+
+function createRoot(children: any[], loc: any) {
+  return {
+    type: NodeTypes.ROOT,
+    children,
+    helpers: [],
+    components: [],
+    directives: [],
+    hoists: [],
+    imports: [],
+    cached: 0,
+    temps: 0,
+    codegenNode: undefined,
+    loc
+  }
 }
 
 export function baseCompile(template: string) {
