@@ -37,16 +37,52 @@ function isEnd(context: TContext) {
   const s = context.source
   return !s
 }
+
 function parseElement(context: TContext) {}
-function parseInterpolation(context: TContext) {}
+
+function parseInterpolation(context: TContext) {
+  //{{ name }}
+  console.log('parseInterpolation', context)
+  const start = getCursor(context) //获取表达式的start位置
+  const closeIndex = context.source.indexOf('}}')
+  advanceBy(context, 2)
+  const innerStart = getCursor(context) // name 开头
+  const innerEnd = getCursor(context) //结尾
+  const rawContentLength = closeIndex - 2 //大括号中的内容长度 包含空格
+
+  const preTrimContent = parseTextData(context, rawContentLength)
+  const content = preTrimContent.trim()
+  const startOffset = preTrimContent.indexOf(content)
+  if (startOffset > 0) {
+    //{{ name}} name前面有空格
+    advancePositionWithMutation(innerStart, preTrimContent, startOffset)
+  }
+  const endOffset =
+    rawContentLength - (preTrimContent.length - content.length - startOffset)
+  advancePositionWithMutation(innerEnd, preTrimContent, endOffset)
+  advanceBy(context, 2)
+
+  return {
+    type: NodeTypes.INTERPOLATION,
+    content: {
+      type: NodeTypes.SIMPLE_EXPRESSION,
+      isStatic: false,
+      content,
+      loc: getSelection(context, innerStart, innerEnd)
+    },
+    loc: getSelection(context, start)
+  }
+}
 
 function getCursor(context: TContext) {
   const { column, line, offset } = context
   return { column, line, offset }
 }
 
+type TCursor = ReturnType<typeof getCursor>
+
 function advancePositionWithMutation(
-  context: TContext,
+  context: TContext | TCursor,
   source: string,
   len: number
 ) {
@@ -116,10 +152,9 @@ function parseChildren(context: TContext) {
       //标签
       node = parseElement(context)
       break
-    } else if (s[0].startsWith('{{')) {
+    } else if (s.startsWith('{{')) {
       //表达式
       node = parseInterpolation(context)
-      break
     } else {
       //文本
       node = parseText(context)
