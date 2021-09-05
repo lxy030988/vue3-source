@@ -1,254 +1,174 @@
-export const enum NodeTypes {
-  ROOT,
-  ELEMENT,
-  TEXT,
-  COMMENT,
-  SIMPLE_EXPRESSION,
-  INTERPOLATION,
-  ATTRIBUTE,
-  DIRECTIVE,
-  // containers
-  COMPOUND_EXPRESSION,
-  IF,
-  IF_BRANCH,
-  FOR,
-  TEXT_CALL,
-  // codegen
-  VNODE_CALL,
-  JS_CALL_EXPRESSION,
-  JS_OBJECT_EXPRESSION,
-  JS_PROPERTY,
-  JS_ARRAY_EXPRESSION,
-  JS_FUNCTION_EXPRESSION,
-  JS_CONDITIONAL_EXPRESSION,
-  JS_CACHE_EXPRESSION,
+import { baseParse, NodeTypes } from './parse'
+import { PatchFlags } from '@vue/shared'
+import { CREATE_TEXT } from './runtimeHelpers'
 
-  // ssr codegen
-  JS_BLOCK_STATEMENT,
-  JS_TEMPLATE_LITERAL,
-  JS_IF_STATEMENT,
-  JS_ASSIGNMENT_EXPRESSION,
-  JS_SEQUENCE_EXPRESSION,
-  JS_RETURN_STATEMENT
-}
-
-function isEnd(context: TContext) {
-  //context.source ='' 解析完成
-  const s = context.source
-  if (context.source.startsWith('</')) {
-    return true
+function transformElement(node: RootNode, context: TransformContext) {
+  //希望在整个树处理完毕后 再处理元素
+  if (node.type != NodeTypes.ELEMENT) {
+    return
   }
-  return !s
-}
-
-function advanceSpaces(context: TContext): void {
-  const match = /^[\t\r\n\f ]+/.exec(context.source)
-  if (match) {
-    advanceBy(context, match[0].length)
+  return () => {
+    //退出函数
+    console.log('处理元素的回调 要等所有子节点遍历完再执行')
   }
 }
 
-function parseTag(context: TContext) {
-  const start = getCursor(context)
-  const match = /^<\/?([a-z][^\t\r\n\f />]*)/i.exec(context.source)!
-  const tag = match[1]
-  advanceBy(context, match[0].length)
-  advanceSpaces(context)
+function isText(node: any) {
+  return node.type === NodeTypes.INTERPOLATION || node.type === NodeTypes.TEXT
+}
 
-  const isSelfClosing = context.source.startsWith('/>')
-  advanceBy(context, isSelfClosing ? 2 : 1)
-
+function createCallExpression(callee: symbol, args: any[]) {
   return {
-    type: NodeTypes.ELEMENT,
-    isSelfClosing,
-    tag,
-    children: [{}],
-    loc: getSelection(context, start)
+    type: NodeTypes.JS_CALL_EXPRESSION,
+    callee,
+    arguments: args
   }
 }
 
-function parseElement(context: TContext) {
-  //1.解析标签名
-  const element = parseTag(context)
+function transformText(node: RootNode, context: TransformContext) {
+  // {{name}}  aaaa => [children,children] => createTextNode(name + 'hello')
+  if (node.type == NodeTypes.ROOT || node.type == NodeTypes.ELEMENT) {
+    return () => {
+      //退出函数
+      console.log('处理文本的回调')
+      const children = node.children
+      let hasText = false
+      let currentContainer: any
 
-  //处理儿子
-  const children = parseChildren(context) //有可能没有儿子 直接跳出  结束标签
+      for (let i = 0; i < children.length; i++) {
+        const child = children[i]
+        if (isText(child)) {
+          hasText = true //当前元素是文本 需要合并
+          // 'aaa bbb' + name <div></div> + 'hello' + name
+          for (let j = i + 1; j < children.length; j++) {
+            const next = children[j]
+            if (isText(next)) {
+              if (!currentContainer) {
+                currentContainer = children[i] = {
+                  type: NodeTypes.COMPOUND_EXPRESSION,
+                  loc: child.loc,
+                  children: [child]
+                }
+              }
+              currentContainer.children.push(` + `, next)
+              children.splice(j, 1)
+              j--
+            } else {
+              currentContainer = null
+              break
+            }
+          }
+        }
+      }
 
-  if (context.source.startsWith('</')) {
-    parseTag(context) //解析关闭标签时 同时会移除关闭信息并更新偏移量
-  }
-  element.children = children
-  element.loc = getSelection(context, element.loc.start)
-  return element
-}
+      //文本需要增加createText方法  helper
+      //<div>hello</div>
+      if (!hasText || children.length == 1) {
+        //只有一个孩子 可以直接innerHTML 不用createText
+        return
+      }
 
-function parseInterpolation(context: TContext) {
-  //{{ name }}
-  const start = getCursor(context) //获取表达式的start位置
-  const closeIndex = context.source.indexOf('}}')
-  advanceBy(context, 2)
-  const innerStart = getCursor(context) // name 开头
-  const innerEnd = getCursor(context) //结尾
-  const rawContentLength = closeIndex - 2 //大括号中的内容长度 包含空格
+      for (let i = 0; i < children.length; i++) {
+        const child = children[i]
+        if (isText(child) || child.type === NodeTypes.COMPOUND_EXPRESSION) {
+          const callArgs: any[] = [] //存放参数
+          callArgs.push(child) //文本内容
+          if (child.type !== NodeTypes.TEXT) {
+            callArgs.push(PatchFlags.TEXT + '')
+          }
 
-  const preTrimContent = parseTextData(context, rawContentLength)
-  const content = preTrimContent.trim()
-  const startOffset = preTrimContent.indexOf(content)
-  if (startOffset > 0) {
-    //{{ name}} name前面有空格
-    advancePositionWithMutation(innerStart, preTrimContent, startOffset)
-  }
-  const endOffset =
-    rawContentLength - (preTrimContent.length - content.length - startOffset)
-  advancePositionWithMutation(innerEnd, preTrimContent, endOffset)
-  advanceBy(context, 2)
-
-  return {
-    type: NodeTypes.INTERPOLATION,
-    content: {
-      type: NodeTypes.SIMPLE_EXPRESSION,
-      isStatic: false,
-      content,
-      loc: getSelection(context, innerStart, innerEnd)
-    },
-    loc: getSelection(context, start)
-  }
-}
-
-function getCursor(context: TContext) {
-  const { column, line, offset } = context
-  return { column, line, offset }
-}
-
-function advancePositionWithMutation(
-  context: TContext | Position,
-  source: string,
-  len: number
-) {
-  //根据内容和结束索引来修改上下文信息
-  let linesCount = 0
-  let lastNewLinePos = -1
-  for (let i = 0; i < len; i++) {
-    if (source.charCodeAt(i) === 10 /* 换行 */) {
-      linesCount++
-      lastNewLinePos = i //换行后第一个人的位置
-    }
-  }
-  context.offset += len //偏移量
-  context.line += linesCount //行
-  context.column = //列
-    lastNewLinePos === -1 ? context.column + len : len - lastNewLinePos
-}
-
-function advanceBy(context: TContext, len: number) {
-  const { source } = context
-  advancePositionWithMutation(context, source, len)
-  context.source = source.slice(len)
-}
-
-function parseTextData(context: TContext, endIndex: number) {
-  const rawText = context.source.slice(0, endIndex)
-  advanceBy(context, endIndex) //在context.source中把文本删除
-  return rawText
-}
-
-type Position = ReturnType<typeof getCursor>
-
-function getSelection(context: TContext, start: Position, end?: Position) {
-  end = end || getCursor(context)
-  return {
-    start,
-    end,
-    source: context.originalSource.slice(start.offset, end.offset)
-  }
-}
-
-function parseText(context: TContext) {
-  const endTokens = ['<', '{{']
-  let endIndex = context.source.length //文本的整改长度
-  for (let i = 0; i < endTokens.length; i++) {
-    const index = context.source.indexOf(endTokens[i], 1)
-    if (index !== -1 && endIndex > index) {
-      endIndex = index
-    }
-  }
-  //有了结束位置 可以更新行列信息
-  const start = getCursor(context)
-  const content = parseTextData(context, endIndex)
-  return {
-    type: NodeTypes.TEXT,
-    content,
-    loc: getSelection(context, start)
-  }
-}
-
-function parseChildren(context: TContext) {
-  const nodes: any[] = []
-  while (!isEnd(context)) {
-    const s = context.source
-    let node: any
-    if (s[0] === '<') {
-      //标签
-      node = parseElement(context)
-    } else if (s.startsWith('{{')) {
-      //表达式
-      node = parseInterpolation(context)
-    } else {
-      //文本
-      node = parseText(context)
-    }
-    nodes.push(node)
-  }
-
-  for (let i = 0; i < nodes.length; i++) {
-    const node = nodes[i]
-    if (node.type === NodeTypes.TEXT) {
-      if (!/[^\t\r\n\f ]/.test(node.content)) {
-        nodes[i] = null
-      } else {
-        node.content = node.content.replace(/[\t\r\n\f ]+/g, ' ')
+          children[i] = {
+            type: NodeTypes.TEXT_CALL,
+            content: child,
+            loc: child.loc,
+            codegenNode: createCallExpression(
+              //用于生成代码
+              context.helper(CREATE_TEXT),
+              callArgs
+            )
+          }
+        }
       }
     }
   }
-  return nodes.filter(Boolean)
-}
-function createParserContext(content: string) {
-  return {
-    line: 1,
-    column: 1,
-    offset: 0,
-    source: content, //source会被不停的移除  等source为空的时候解析完毕
-    originalSource: content //这个值不会变 记录传入的内容
-  }
-}
-type TContext = ReturnType<typeof createParserContext>
-function baseParse(content: string) {
-  //标识节点的信息 行 列 偏移量
-  //每解析一段 就移除一部分
-  const context = createParserContext(content)
-  const start = getCursor(context)
-
-  return createRoot(parseChildren(context), getSelection(context, start))
+  // console.log('transformText', node, context)
 }
 
-function createRoot(children: any[], loc: any) {
-  return {
-    type: NodeTypes.ROOT,
-    children,
-    helpers: [],
-    components: [],
-    directives: [],
-    hoists: [],
-    imports: [],
-    cached: 0,
-    temps: 0,
-    codegenNode: undefined,
-    loc
+//树结构 树的每个节点进行转化
+function getBaseTransformPreset() {
+  //很多转化方法
+  return [transformElement, transformText]
+}
+
+function createTransformContext(
+  root: RootNode,
+  { nodeTransforms }: TransformOptions
+) {
+  const context = {
+    root,
+    currentNode: root,
+    nodeTransforms,
+    helpers: new Map(),
+    helper(name: symbol) {
+      //代码中用到了具体方法，需要调用此方法  讲对应的名字加到helpers
+      const count = context.helpers.get(name) || 0
+      context.helpers.set(name, count + 1)
+      return name
+    }
   }
+  return context
+}
+
+function traverseChildren(node: RootNode, context: TransformContext) {
+  //深度优先
+  for (let i = 0; i < node.children.length; i++) {
+    traverseNode(node.children[i], context)
+  }
+}
+
+type TransformContext = ReturnType<typeof createTransformContext>
+function traverseNode(node: RootNode, context: TransformContext) {
+  const { nodeTransforms } = context
+  context.currentNode = node
+  const exitFns = []
+
+  for (let i = 0; i < nodeTransforms.length; i++) {
+    const onExit = nodeTransforms[i](node, context)
+    if (onExit) {
+      exitFns.push(onExit)
+    }
+  }
+
+  switch (node.type) {
+    case NodeTypes.ELEMENT:
+    case NodeTypes.ROOT:
+      traverseChildren(node, context)
+      break
+  }
+
+  context.currentNode = node
+  let i = exitFns.length
+  while (i--) {
+    exitFns[i]()
+  }
+}
+
+type RootNode = ReturnType<typeof baseParse>
+type TransformOptions = {
+  nodeTransforms: any[]
+  [key: string]: any
+}
+function transform(root: RootNode, options: TransformOptions) {
+  const context = createTransformContext(root, options)
+  traverseNode(root, context)
+  // console.log('transform', context)
 }
 
 export function baseCompile(template: string) {
   // 将模板转成ast树
   const ast = baseParse(template)
+  //将ast语法进行转化(优化 静态提升 方法缓存  生成代码 为了最终生成代码使用)
+  const nodeTransforms = getBaseTransformPreset()
+  transform(ast, { nodeTransforms })
   return ast
 }
